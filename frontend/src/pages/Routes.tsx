@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { getRoutes, saveRoute } from '@/utils/storage';
+import { getRoutes } from '@/utils/storage';
 import { Route } from '@/types';
-import { ArrowLeft, MapPin, Clock, Car, Trash2, Plus } from 'lucide-react';
+import { MapPin, Clock, Plus, Trash2 } from 'lucide-react';
 
 const Routes = () => {
   const navigate = useNavigate();
@@ -17,7 +16,7 @@ const Routes = () => {
   }, []);
 
   const handleDeleteRoute = (routeId: string) => {
-    if (confirm('Are you sure you want to delete this route?')) {
+    if (confirm('Delete this route?')) {
       const updatedRoutes = routes.filter(r => r.id !== routeId);
       localStorage.setItem('ai_city_companion_routes', JSON.stringify(updatedRoutes));
       setRoutes(updatedRoutes);
@@ -25,7 +24,6 @@ const Routes = () => {
   };
 
   const handleViewRoute = (route: Route) => {
-    // Navigate to first place in the route
     if (route.places.length > 0) {
       navigate(`/place/${route.places[0].id}`);
     }
@@ -33,94 +31,89 @@ const Routes = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
-          <Button onClick={() => navigate('/route-builder')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Route
-          </Button>
+      {/* Mobile Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold">My Routes</h1>
+              <p className="text-xs text-muted-foreground">
+                {routes.length} saved {routes.length === 1 ? 'route' : 'routes'}
+              </p>
+            </div>
+            <Button size="sm" onClick={() => navigate('/route-builder')}>
+              <Plus className="w-4 h-4 mr-1" />
+              New
+            </Button>
+          </div>
         </div>
+      </header>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">My Routes</h1>
-          <p className="text-muted-foreground">
-            Your saved exploration routes
-          </p>
-        </div>
-
+      <div className="px-4 py-4">
         {routes.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No routes yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first custom route to start exploring!
+              <p className="text-sm text-muted-foreground mb-4">
+                Create your first route to start exploring!
               </p>
               <Button onClick={() => navigate('/route-builder')}>
                 <Plus className="w-4 h-4 mr-2" />
-                Create Your First Route
+                Create Route
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
             {routes.map(route => (
-              <Card key={route.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle>{route.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {route.places.length} stops • Created {new Date(route.createdAt).toLocaleDateString()}
+              <Card key={route.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base truncate">{route.name}</CardTitle>
+                      <CardDescription className="text-xs">
+                        {route.places.length} stops • {new Date(route.createdAt).toLocaleDateString()}
                       </CardDescription>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDeleteRoute(route.id)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive flex-shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
                     {route.narrative}
                   </p>
 
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Stops:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {route.places.map((place, index) => (
-                        <Badge key={place.id} variant="secondary">
-                          {index + 1}. {place.name}
-                        </Badge>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-1">
+                    {route.places.slice(0, 3).map((place, index) => (
+                      <Badge key={place.id} variant="secondary" className="text-xs">
+                        {index + 1}. {place.name}
+                      </Badge>
+                    ))}
+                    {route.places.length > 3 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{route.places.length - 3} more
+                      </Badge>
+                    )}
                   </div>
 
-                  <Separator />
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{route.totalWalkingTime} min walk</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Car className="w-4 h-4" />
-                      <span>{route.totalDrivingTime} min drive</span>
+                      <Clock className="w-3 h-3" />
+                      <span>{route.totalWalkingTime} min</span>
                     </div>
                   </div>
 
                   <Button 
                     className="w-full" 
+                    size="sm"
                     onClick={() => handleViewRoute(route)}
                   >
                     <MapPin className="w-4 h-4 mr-2" />

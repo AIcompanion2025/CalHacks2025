@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { isOnboardingComplete } from "@/utils/storage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
+import BottomNavigation from "@/components/navigation/BottomNavigation";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
 import PlaceDetail from "./pages/PlaceDetail";
@@ -17,7 +18,16 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  return isOnboardingComplete() ? <>{children}</> : <Navigate to="/onboarding" />;
+  return isOnboardingComplete() ? (
+    <div className="flex flex-col h-screen">
+      <main className="flex-1 overflow-y-auto pb-16">
+        {children}
+      </main>
+      <BottomNavigation />
+    </div>
+  ) : (
+    <Navigate to="/onboarding" />
+  );
 };
 
 const App = () => (
