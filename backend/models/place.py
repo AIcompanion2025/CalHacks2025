@@ -1,0 +1,106 @@
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+from bson import ObjectId
+
+
+class PyObjectId(ObjectId):
+    """Custom ObjectId type for Pydantic."""
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if not ObjectId.is_valid(v):
+            raise ValueError("Invalid ObjectId")
+        return ObjectId(v)
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, field_schema):
+        field_schema.update(type="string")
+
+
+class Coordinates(BaseModel):
+    """Coordinates model."""
+    lat: float
+    lng: float
+
+
+class Place(BaseModel):
+    """Place model."""
+    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    name: str
+    category: str
+    description: str
+    ai_summary: str = Field(alias="aiSummary")
+    rating: float
+    review_count: int = Field(alias="reviewCount")
+    price_level: int = Field(alias="priceLevel")
+    walking_time: int = Field(alias="walkingTime")
+    driving_time: int = Field(alias="drivingTime")
+    coordinates: Coordinates
+    image_url: str = Field(alias="imageUrl")
+    tags: List[str]
+    vibe: List[str]
+    created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        json_schema_extra = {
+            "example": {
+                "name": "Hidden Gem Coffee Roasters",
+                "category": "Café",
+                "description": "Artisan coffee shop tucked away in a converted warehouse",
+                "aiSummary": "This intimate café feels like a secret only locals know.",
+                "rating": 4.9,
+                "reviewCount": 567,
+                "priceLevel": 2,
+                "walkingTime": 8,
+                "drivingTime": 3,
+                "coordinates": {"lat": 37.8695, "lng": -122.2710},
+                "imageUrl": "/placeholder.svg",
+                "tags": ["coffee", "cozy", "artisan"],
+                "vibe": ["warm", "intimate", "creative"]
+            }
+        }
+
+
+class PlaceResponse(BaseModel):
+    """Place response model for API."""
+    id: str
+    name: str
+    category: str
+    description: str
+    aiSummary: str
+    rating: float
+    reviewCount: int
+    priceLevel: int
+    walkingTime: int
+    drivingTime: int
+    coordinates: Coordinates
+    imageUrl: str
+    tags: List[str]
+    vibe: List[str]
+
+    @classmethod
+    def from_db(cls, place_doc: dict):
+        """Convert database document to response model."""
+        return cls(
+            id=str(place_doc["_id"]),
+            name=place_doc["name"],
+            category=place_doc["category"],
+            description=place_doc["description"],
+            aiSummary=place_doc["ai_summary"],
+            rating=place_doc["rating"],
+            reviewCount=place_doc["review_count"],
+            priceLevel=place_doc["price_level"],
+            walkingTime=place_doc["walking_time"],
+            drivingTime=place_doc["driving_time"],
+            coordinates=Coordinates(**place_doc["coordinates"]),
+            imageUrl=place_doc["image_url"],
+            tags=place_doc["tags"],
+            vibe=place_doc["vibe"]
+        )
