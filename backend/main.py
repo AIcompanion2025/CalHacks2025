@@ -28,15 +28,15 @@ app.include_router(expenses.router)
 
 
 @app.on_event("startup")
-async def startup_event():
+def startup_event():
     """Connect to MongoDB on startup."""
-    await connect_to_mongo()
+    connect_to_mongo()
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
+def shutdown_event():
     """Close MongoDB connection on shutdown."""
-    await close_mongo_connection()
+    close_mongo_connection()
 
 
 @app.get("/healthz")

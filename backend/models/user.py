@@ -82,3 +82,6 @@ class UserWithToken(BaseModel):
     """User response with JWT token."""
     user: UserResponse
     token: str
+    
+
+User = UserBase
