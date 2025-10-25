@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import connect_to_mongo, close_mongo_connection, get_database
-from routers import auth, users
+from routers import auth, users, places, routes, expenses
 
 app = FastAPI(
     title="AI City Companion API",
@@ -22,6 +22,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(places.router)
+app.include_router(routes.router)
+app.include_router(expenses.router)
 
 
 @app.on_event("startup")
