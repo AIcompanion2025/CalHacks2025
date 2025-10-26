@@ -71,11 +71,11 @@ class AIRouteService {
 
   async generateRoute(request: AIRouteRequest, previousCity?: string): Promise<AIRouteResponse> {
     try {
-      // Let the AI determine the city from the prompt - no hardcoded logic
-      // Only use the explicitly provided city from the request
-      let city = request.city || '';
+      // Always pass empty city string to let AI determine city from prompt
+      // This allows the system to work with any city worldwide without hardcoded mappings
+      const city = '';
       
-      console.log(`Generating route with city: "${city}" from prompt: "${request.prompt}"`);
+      console.log(`Generating route from prompt: "${request.prompt}" (AI will determine city)`);
       
       // Add timeout and better error handling
       const controller = new AbortController();
@@ -87,8 +87,8 @@ class AIRouteService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...request,
-          city: city
+          prompt: request.prompt,
+          city: city  // Always empty - let AI figure out the city from the prompt
         }),
         signal: controller.signal
       });
