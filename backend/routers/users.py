@@ -4,6 +4,7 @@ from typing import Dict, Any
 from datetime import datetime
 from bson import ObjectId
 
+from services.auth import get_current_user  # your auth dependency
 from models.user import UserInDB, UserResponse, UserPreferences
 from database import get_database
 from utils.gamification import calculate_level, get_level_title, get_level_progress
@@ -50,39 +51,43 @@ class VisitPlaceResponse(BaseModel):
     level: int
     visitedPlaces: list[str]
 
+async def get_user_profile(user: UserInDB, db=None) -> ProfileResponse:
+    """
+    Returns a ProfileResponse for a given user.
+    """
+    # Count user's routes if db is provided
+    routes_count = 0
+    if db is not None:
+        routes_count = await db.routes.count_documents({"user_id": user.id})
+
+    # Convert user to response model
+    user_dict = user.model_dump(by_alias=True)
+    user_dict["_id"] = str(user.id)
+    user_response = UserResponse(**user_dict)
+
+    # Prepare stats
+    stats = ProfileStatsResponse(
+        visitedPlaces=len(user.visited_places),
+        routesCreated=routes_count
+    )
+
+    return ProfileResponse(user=user_response, stats=stats)
+
+router = APIRouter()
 
 @router.get("/profile", response_model=ProfileResponse)
-async def get_profile(
-    current_user: UserInDB
-) -> ProfileResponse:
-    """
-    Get user profile with statistics.
-    
-    Returns:
-        User profile with visited places count and routes count
-    """
+async def profile(
+    current_user: UserInDB = Depends(get_current_user)  # inject logged-in user
+):
     db = get_database()
     if db is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection unavailable"
         )
-    
-    # Count user's routes
-    routes_count = await db.routes.count_documents({"user_id": current_user.id})
-    
-    # Prepare user response
-    user_dict = current_user.model_dump(by_alias=True)
-    user_dict["_id"] = str(current_user.id)
-    user_response = UserResponse(**user_dict)
-    
-    # Prepare stats
-    stats = ProfileStatsResponse(
-        visitedPlaces=len(current_user.visited_places),
-        routesCreated=routes_count
-    )
-    
-    return ProfileResponse(user=user_response, stats=stats)
+
+    return await get_user_profile(current_user, db=db)
+
 
 
 @router.put("/profile", response_model=Dict[str, UserResponse])
@@ -262,3 +267,6 @@ async def visit_place(
         level=new_level,
         visitedPlaces=new_visited_places
     )
+
+
+    
