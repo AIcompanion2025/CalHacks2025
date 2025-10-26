@@ -48,7 +48,8 @@ async def generate_ai_route_demo(request: AIRouteRequest):
         gemini_service = create_gemini_service()
         
         # Step 1: Generate initial route with Gemini
-        initial_route = await gemini_service.generate_initial_route(request.prompt, request.city)
+        city = request.city or "any city"  # Let AI figure out the city from the prompt
+        initial_route = await gemini_service.generate_initial_route(request.prompt, city)
         logger.info(f"Generated initial route: {initial_route['name']}")
         
         # Step 2: Enrich places with Google Places API
@@ -58,7 +59,9 @@ async def generate_ai_route_demo(request: AIRouteRequest):
         logger.info(f"Enriching {len(place_names)} places with Google Places API")
         for place_name in place_names:
             try:
-                place_details = await google_places_service.search_places_by_name(place_name, request.city)
+                # Use the detected city or let Google Places figure it out
+                search_city = city if city != "any city" else None
+                place_details = await google_places_service.search_places_by_name(place_name, search_city)
                 if place_details:
                     # Add the initial description from Gemini
                     place_details['ai_description'] = initial_route.get('descriptions', {}).get(place_name, '')

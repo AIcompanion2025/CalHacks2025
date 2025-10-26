@@ -15,7 +15,7 @@ class GooglePlacesService:
     async def search_places_by_name(
         self, 
         place_name: str, 
-        city: str = "Berkeley, CA",
+        city: Optional[str] = None,
         radius: int = 5000
     ) -> Optional[Dict[str, Any]]:
         """
@@ -31,8 +31,12 @@ class GooglePlacesService:
         """
         try:
             # Use text search to find the place
+            query = f"{place_name}"
+            if city:
+                query += f" {city}"
+            
             places_result = self.client.places(
-                query=f"{place_name} {city}",
+                query=query,
                 type="establishment"
             )
             
