@@ -103,4 +103,15 @@ export const api = {
       body: JSON.stringify(preferences),
     });
   },
+
+  async generateAIRouteDemo(prompt: string, city?: string) {
+    return this.request('/api/v1/ai/generate-route-demo', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, city }),
+    });
+  },
+
+  async getRouteSuggestionsDemo() {
+    return this.request('/api/v1/ai/route-suggestions-demo');
+  },
 };

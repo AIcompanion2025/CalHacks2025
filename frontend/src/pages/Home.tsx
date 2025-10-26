@@ -9,13 +9,16 @@ import AppLogo from '@/components/logo/AppLogo';
 import { getUser } from '@/utils/storage';
 import { generatePersonalizedRecommendations, calculateLevel, getLevelTitle } from '@/utils/aiMock';
 import { Place, User } from '@/types';
-import { Sparkles, Award } from 'lucide-react';
+import { Sparkles, Award, Loader2 } from 'lucide-react';
+import { api } from '@/utils/api';
+import { toast } from 'sonner';
 
 const Home = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [recommendations, setRecommendations] = useState<Place[]>([]);
   const [moodInput, setMoodInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const currentUser = getUser();
@@ -30,14 +33,62 @@ const Home = () => {
     }
   }, []);
 
-  const handleMoodSearch = () => {
-    if (user) {
+  const handleMoodSearch = async () => {
+    if (!user || !moodInput.trim()) {
+      toast.error('Please enter how you\'re feeling');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Call the AI route demo endpoint
+      const response = await api.generateAIRouteDemo(
+        `I'm feeling ${moodInput}. Show me places that match this mood in Berkeley, CA`,
+        'Berkeley, CA'
+      );
+
+      if (response.error) {
+        toast.error('Failed to generate recommendations');
+        // Fallback to mock data
+        const recs = generatePersonalizedRecommendations(
+          moodInput || user.preferences.mood[0] || 'curious',
+          60,
+          user.preferences.interests
+        );
+        setRecommendations(recs);
+      } else if (response.data?.route?.places) {
+        // Convert AI route places to our Place format
+        const aiPlaces: Place[] = response.data.route.places.map((place: any) => ({
+          id: place.id,
+          name: place.name,
+          category: place.category,
+          description: place.description,
+          aiSummary: place.aiSummary || place.description,
+          rating: place.rating,
+          reviewCount: place.reviewCount,
+          priceLevel: place.priceLevel,
+          walkingTime: place.walkingTime,
+          drivingTime: place.drivingTime,
+          coordinates: place.coordinates,
+          imageUrl: place.imageUrl,
+          tags: place.tags || [],
+          vibe: place.vibe || []
+        }));
+        setRecommendations(aiPlaces);
+        toast.success(`Found ${aiPlaces.length} places for your mood!`);
+      }
+    } catch (error) {
+      console.error('Error generating AI recommendations:', error);
+      toast.error('Something went wrong. Using local recommendations.');
+      // Fallback to mock data
       const recs = generatePersonalizedRecommendations(
         moodInput || user.preferences.mood[0] || 'curious',
         60,
         user.preferences.interests
       );
       setRecommendations(recs);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -45,11 +96,47 @@ const Home = () => {
     navigate(`/place/${place.id}`);
   };
 
-  const handleQuickMood = (mood: string) => {
+  const handleQuickMood = async (mood: string) => {
     setMoodInput(mood);
-    if (user) {
+    if (!user) return;
+
+    setIsGenerating(true);
+    try {
+      const response = await api.generateAIRouteDemo(
+        `I'm feeling ${mood}. Show me places that match this mood in Berkeley, CA`,
+        'Berkeley, CA'
+      );
+
+      if (response.error) {
+        // Fallback to mock data
+        const recs = generatePersonalizedRecommendations(mood, 60, user.preferences.interests);
+        setRecommendations(recs);
+      } else if (response.data?.route?.places) {
+        const aiPlaces: Place[] = response.data.route.places.map((place: any) => ({
+          id: place.id,
+          name: place.name,
+          category: place.category,
+          description: place.description,
+          aiSummary: place.aiSummary || place.description,
+          rating: place.rating,
+          reviewCount: place.reviewCount,
+          priceLevel: place.priceLevel,
+          walkingTime: place.walkingTime,
+          drivingTime: place.drivingTime,
+          coordinates: place.coordinates,
+          imageUrl: place.imageUrl,
+          tags: place.tags || [],
+          vibe: place.vibe || []
+        }));
+        setRecommendations(aiPlaces);
+        toast.success(`Found ${aiPlaces.length} places for ${mood} mood!`);
+      }
+    } catch (error) {
+      console.error('Error generating AI recommendations:', error);
       const recs = generatePersonalizedRecommendations(mood, 60, user.preferences.interests);
       setRecommendations(recs);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -105,8 +192,12 @@ const Home = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleMoodSearch()}
                 className="text-sm"
               />
-              <Button onClick={handleMoodSearch} size="sm">
-                <Sparkles className="w-4 h-4" />
+              <Button onClick={handleMoodSearch} size="sm" disabled={isGenerating || !moodInput.trim()}>
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
               </Button>
             </div>
             
