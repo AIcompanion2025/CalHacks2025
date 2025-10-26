@@ -30,7 +30,7 @@ class PyObjectId(ObjectId):
 
 class RouteBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    place_ids: List[str] = Field(..., min_length=2)
+    place_ids: Optional[List[str]] = Field(default=None, min_length=2)
 
 
 class RouteCreate(RouteBase):
@@ -44,6 +44,7 @@ class RouteInDB(RouteBase):
     total_driving_time: int = 0
     narrative: str = ""
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    demo_mode: Optional[bool] = Field(default=False)
 
     class Config:
         populate_by_name = True
@@ -55,12 +56,13 @@ class RouteResponse(BaseModel):
     id: str = Field(alias="_id")
     user_id: str
     name: str
-    place_ids: List[str]
+    place_ids: Optional[List[str]] = None
     total_walking_time: int
     total_driving_time: int
     narrative: str
     created_at: datetime
     places: Optional[List[dict]] = None
+    demo_mode: Optional[bool] = Field(default=False)
 
     class Config:
         populate_by_name = True
