@@ -6,7 +6,6 @@ from datetime import datetime
 from database import get_database
 from models.route import RouteCreate, RouteResponse
 from models.place import PlaceResponse
-from auth.dependencies import get_current_user
 from models.user import User
 from utils.narrative import generate_route_narrative
 
@@ -15,9 +14,8 @@ router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 
 @router.post("", response_model=dict)
 async def create_route(
-    route_data: RouteCreate,
-    current_user: User = Depends(get_current_user)
-):
+    route_data: RouteCreate
+    ):
     """
     Create a new route with multiple places.
     
@@ -116,7 +114,7 @@ async def create_route(
 
 @router.get("", response_model=dict)
 async def list_routes(
-    current_user: User = Depends(get_current_user)
+    current_user: User
 ):
     """
     List all routes created by the current user.
@@ -164,7 +162,7 @@ async def list_routes(
 @router.get("/{route_id}", response_model=dict)
 async def get_route(
     route_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User
 ):
     """
     Get a single route by ID with full place details.
@@ -217,7 +215,7 @@ async def get_route(
 @router.delete("/{route_id}", response_model=dict)
 async def delete_route(
     route_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User
 ):
     """
     Delete a route by ID.

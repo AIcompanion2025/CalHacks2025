@@ -1,14 +1,25 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional, List
 from bson import ObjectId
+from pydantic import BaseModel, Field
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
 
 
 class PyObjectId(ObjectId):
-    """Custom ObjectId type for Pydantic."""
+    """Pydantic v2-compatible ObjectId type."""
+
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
+        return core_schema.no_info_after_validator_function(
+            cls.validate, core_schema.str_schema()
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        json_schema = handler(core_schema)
+        json_schema.update(type="string")
+        return json_schema
 
     @classmethod
     def validate(cls, v):
@@ -16,19 +27,13 @@ class PyObjectId(ObjectId):
             raise ValueError("Invalid ObjectId")
         return ObjectId(v)
 
-    @classmethod
-    def __get_pydantic_json_schema__(cls, field_schema):
-        field_schema.update(type="string")
-
 
 class Coordinates(BaseModel):
-    """Coordinates model."""
     lat: float
     lng: float
 
 
 class Place(BaseModel):
-    """Place model."""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     name: str
     category: str
@@ -63,13 +68,12 @@ class Place(BaseModel):
                 "coordinates": {"lat": 37.8695, "lng": -122.2710},
                 "imageUrl": "/placeholder.svg",
                 "tags": ["coffee", "cozy", "artisan"],
-                "vibe": ["warm", "intimate", "creative"]
+                "vibe": ["warm", "intimate", "creative"],
             }
         }
 
 
 class PlaceResponse(BaseModel):
-    """Place response model for API."""
     id: str
     name: str
     category: str
@@ -87,7 +91,6 @@ class PlaceResponse(BaseModel):
 
     @classmethod
     def from_db(cls, place_doc: dict):
-        """Convert database document to response model."""
         return cls(
             id=str(place_doc["_id"]),
             name=place_doc["name"],
@@ -102,5 +105,5 @@ class PlaceResponse(BaseModel):
             coordinates=Coordinates(**place_doc["coordinates"]),
             imageUrl=place_doc["image_url"],
             tags=place_doc["tags"],
-            vibe=place_doc["vibe"]
+            vibe=place_doc["vibe"],
         )

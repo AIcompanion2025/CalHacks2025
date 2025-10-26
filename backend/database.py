@@ -10,9 +10,9 @@ def connect_to_mongo():
     try:
         client = MongoClient("mongodb://localhost:27017/")
         db = client["mydatabase"]
-        print("✅ Connected to MongoDB successfully!")
+        print("Connected to MongoDB successfully!")
     except Exception as e:
-        print("❌ MongoDB connection failed:", e)
+        print("MongoDB connection failed:", e)
 
 def get_database():
     """Return the database instance."""
@@ -24,4 +24,4 @@ def close_mongo_connection():
     global client
     if client:
         client.close()
-        print("🛑 MongoDB connection closed.")
+        print("MongoDB connection closed.")

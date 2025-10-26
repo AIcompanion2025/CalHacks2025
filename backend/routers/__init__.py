@@ -1,4 +1,3 @@
 """Routers package for AI City Companion."""
-from . import auth, users, places, routes, expenses
-
-__all__ = ["auth", "users", "places", "routes", "expenses"]
+from . import  users, places, routes
+__all__ = [ "users", "places", "routes"]

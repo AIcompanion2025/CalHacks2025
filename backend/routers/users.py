@@ -4,7 +4,6 @@ from typing import Dict, Any
 from datetime import datetime
 from bson import ObjectId
 
-from auth.dependencies import get_current_user
 from models.user import UserInDB, UserResponse, UserPreferences
 from database import get_database
 from utils.gamification import calculate_level, get_level_title, get_level_progress
@@ -54,7 +53,7 @@ class VisitPlaceResponse(BaseModel):
 
 @router.get("/profile", response_model=ProfileResponse)
 async def get_profile(
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB
 ) -> ProfileResponse:
     """
     Get user profile with statistics.
@@ -89,7 +88,7 @@ async def get_profile(
 @router.put("/profile", response_model=Dict[str, UserResponse])
 async def update_profile(
     profile_update: ProfileUpdateRequest,
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB
 ) -> Dict[str, UserResponse]:
     """
     Update user profile (name only, email is immutable).
@@ -142,7 +141,7 @@ async def update_profile(
 @router.put("/preferences", response_model=Dict[str, UserPreferences])
 async def update_preferences(
     preferences_update: PreferencesUpdateRequest,
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB
 ) -> Dict[str, UserPreferences]:
     """
     Update user preferences for personalized recommendations.
@@ -189,7 +188,7 @@ async def update_preferences(
 @router.post("/visit-place", response_model=VisitPlaceResponse)
 async def visit_place(
     visit_request: VisitPlaceRequest,
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB
 ) -> VisitPlaceResponse:
     """
     Mark a place as visited and update Street Cred.

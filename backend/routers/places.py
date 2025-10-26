@@ -4,7 +4,6 @@ from typing import List, Optional
 from bson import ObjectId
 from database import get_database
 from models.place import PlaceResponse
-from auth.dependencies import get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/api/v1/places", tags=["places"])
@@ -14,8 +13,7 @@ router = APIRouter(prefix="/api/v1/places", tags=["places"])
 async def list_places(
     category: Optional[str] = Query(None, description="Filter by category"),
     priceLevel: Optional[int] = Query(None, description="Filter by max price level"),
-    tags: Optional[str] = Query(None, description="Filter by tags (comma-separated)"),
-    current_user: User = Depends(get_current_user)
+    tags: Optional[str] = Query(None, description="Filter by tags (comma-separated)")
 ):
     """
     List all places with optional filtering.
@@ -53,8 +51,7 @@ async def list_places(
 
 @router.get("/{place_id}", response_model=dict)
 async def get_place(
-    place_id: str,
-    current_user: User = Depends(get_current_user)
+    place_id: str
 ):
     """
     Get a single place by ID.
@@ -82,8 +79,7 @@ async def get_place(
 
 @router.post("/recommendations", response_model=dict)
 async def get_recommendations(
-    request_data: dict,
-    current_user: User = Depends(get_current_user)
+    request_data: dict
 ):
     """
     Get personalized place recommendations based on user preferences.
