@@ -75,42 +75,62 @@ class AIRouteService {
     
     // Famous landmarks that indicate specific cities
     const landmarkToCity: { [key: string]: string } = {
-      'hyde park': 'London',
-      'trafalgar square': 'London',
-      'big ben': 'London',
-      'london eye': 'London',
-      'tower bridge': 'London',
-      'buckingham palace': 'London',
-      'eiffel tower': 'Paris',
-      'louvre': 'Paris',
-      'notre dame': 'Paris',
-      'champs elysees': 'Paris',
-      'arc de triomphe': 'Paris',
-      'times square': 'New York',
-      'central park': 'New York',
-      'statue of liberty': 'New York',
-      'empire state building': 'New York',
-      'brooklyn bridge': 'New York',
-      'golden gate bridge': 'San Francisco',
-      'fisherman\'s wharf': 'San Francisco',
-      'alcatraz': 'San Francisco',
-      'colosseum': 'Rome',
-      'vatican': 'Rome',
-      'trevi fountain': 'Rome',
-      'sagrada familia': 'Barcelona',
-      'park guell': 'Barcelona',
-      'brandenburg gate': 'Berlin',
-      'berlin wall': 'Berlin',
-      'red square': 'Moscow',
-      'kremlin': 'Moscow',
-      'sydney opera house': 'Sydney',
-      'harbour bridge': 'Sydney',
-      'bondi beach': 'Sydney',
+      // London landmarks
+      'hyde park': 'London, UK',
+      'trafalgar square': 'London, UK',
+      'big ben': 'London, UK',
+      'london eye': 'London, UK',
+      'tower bridge': 'London, UK',
+      'buckingham palace': 'London, UK',
+      'westminster': 'London, UK',
+      'piccadilly': 'London, UK',
+      'covent garden': 'London, UK',
+      // Paris landmarks
+      'eiffel tower': 'Paris, France',
+      'louvre': 'Paris, France',
+      'notre dame': 'Paris, France',
+      'champs elysees': 'Paris, France',
+      'arc de triomphe': 'Paris, France',
+      'montmartre': 'Paris, France',
+      // New York landmarks
+      'times square': 'New York, NY',
+      'central park': 'New York, NY',
+      'statue of liberty': 'New York, NY',
+      'empire state building': 'New York, NY',
+      'brooklyn bridge': 'New York, NY',
+      'manhattan': 'New York, NY',
+      // San Francisco landmarks
+      'golden gate bridge': 'San Francisco, CA',
+      'fisherman\'s wharf': 'San Francisco, CA',
+      'alcatraz': 'San Francisco, CA',
+      'chinatown': 'San Francisco, CA',
+      // Berkeley landmarks
+      'uc berkeley': 'Berkeley, CA',
+      'telegraph avenue': 'Berkeley, CA',
+      'berkeley marina': 'Berkeley, CA',
+      // Rome landmarks
+      'colosseum': 'Rome, Italy',
+      'vatican': 'Rome, Italy',
+      'trevi fountain': 'Rome, Italy',
+      // Barcelona landmarks
+      'sagrada familia': 'Barcelona, Spain',
+      'park guell': 'Barcelona, Spain',
+      // Berlin landmarks
+      'brandenburg gate': 'Berlin, Germany',
+      'berlin wall': 'Berlin, Germany',
+      // Moscow landmarks
+      'red square': 'Moscow, Russia',
+      'kremlin': 'Moscow, Russia',
+      // Sydney landmarks
+      'sydney opera house': 'Sydney, Australia',
+      'harbour bridge': 'Sydney, Australia',
+      'bondi beach': 'Sydney, Australia',
     };
 
     // Check for famous landmarks first
     for (const [landmark, city] of Object.entries(landmarkToCity)) {
       if (promptLower.includes(landmark)) {
+        console.log(`Detected landmark "${landmark}" -> city: ${city}`);
         return city;
       }
     }
@@ -151,23 +171,10 @@ class AIRouteService {
           continue;
         }
         
-        // Add state/country if not present
-        if (!city.includes(',') && !city.includes(' ')) {
-          // For single word cities, try to determine if it's a major city
-          const majorCities = ['london', 'paris', 'tokyo', 'new york', 'los angeles', 'chicago', 'houston', 'phoenix', 'philadelphia', 'san antonio', 'san diego', 'dallas', 'san jose', 'austin', 'jacksonville', 'fort worth', 'columbus', 'charlotte', 'san francisco', 'indianapolis', 'seattle', 'denver', 'washington', 'boston', 'el paso', 'nashville', 'detroit', 'oklahoma city', 'portland', 'las vegas', 'memphis', 'louisville', 'baltimore', 'milwaukee', 'albuquerque', 'tucson', 'fresno', 'sacramento', 'kansas city', 'mesa', 'atlanta', 'omaha', 'colorado springs', 'raleigh', 'miami', 'virginia beach', 'oakland', 'minneapolis', 'tulsa', 'arlington', 'tampa', 'new orleans'];
-          
-          if (majorCities.includes(city.toLowerCase())) {
-            // For major cities, add appropriate country/state
-            if (['london', 'paris', 'tokyo', 'berlin', 'rome', 'madrid', 'amsterdam', 'vienna', 'prague', 'budapest', 'warsaw', 'stockholm', 'copenhagen', 'oslo', 'helsinki', 'dublin', 'lisbon', 'athens', 'istanbul', 'moscow', 'beijing', 'shanghai', 'hong kong', 'singapore', 'sydney', 'melbourne', 'toronto', 'vancouver', 'montreal'].includes(city.toLowerCase())) {
-              // International cities
-              return city;
-            } else {
-              // US cities - add state if not obvious
-              return city;
-            }
-          }
-        }
+        // Capitalize first letter of each word
+        city = city.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         
+        console.log(`Extracted city from pattern: ${city}`);
         return city;
       }
     }
@@ -180,13 +187,14 @@ class AIRouteService {
   async generateRoute(request: AIRouteRequest, previousCity?: string): Promise<AIRouteResponse> {
     try {
       // Extract city from prompt if not explicitly provided
-      // For modification prompts, use previous city if no new city is detected
-      let city = request.city || this.extractCityFromPrompt(request.prompt);
+      let city = this.extractCityFromPrompt(request.prompt) || request.city;
       
       // If no city detected and we have a previous city, use it
       if (!city && previousCity) {
         city = previousCity;
       }
+      
+      console.log(`Generating route with city: "${city}" from prompt: "${request.prompt}"`);
       
       // Add timeout and better error handling
       const controller = new AbortController();

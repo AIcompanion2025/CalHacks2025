@@ -202,10 +202,18 @@ class GeminiService:
         Returns:
             Formatted prompt string
         """
+        # Determine if we have a specific location or should infer from prompt
+        if location and location != "any city":
+            location_instruction = f"- Use real, well-known locations in {location}"
+            location_context = f'Location: "{location}"'
+        else:
+            location_instruction = "- Determine the appropriate city/location from the user's request and use real places from that location"
+            location_context = 'Location: Infer from user request'
+        
         prompt = f"""You are an expert travel guide creating personalized walking tour itineraries.
 
 User Request: "{user_prompt}"
-Location: "{location}"
+{location_context}
 
 Create a walking tour with 3-5 interesting places. Your response MUST be ONLY valid JSON with this exact structure:
 {{
@@ -218,12 +226,13 @@ Create a walking tour with 3-5 interesting places. Your response MUST be ONLY va
   }}
 }}
 
-IMPORTANT: 
+IMPORTANT:
 - Return ONLY the JSON object, no other text
 - Ensure all JSON brackets and quotes are properly closed
 - Include descriptions for ALL stops
-- Use real, well-known locations in {location}
-- Make the route name creative and descriptive"""
+{location_instruction}
+- Make the route name creative and descriptive
+- If the user mentions specific landmarks or areas, use those as context for the city"""
 
         return prompt
     
