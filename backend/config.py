@@ -13,8 +13,28 @@ class Settings(BaseSettings):
     cors_origins_list: List[str] = ["*"]  # allow all origins for now
     
     # Database settings
-    mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "ai_city_companion"
+
+    app_env: str
+    port: int
+    mongodb_uri: str
+    jwt_secret: str
+    jwt_expires_in: int
+    cors_origins: str
+    
+    # JWT Authentication settings
+    secret_key: str = ""  # Will be loaded from jwt_secret
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 10080  # 7 days
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Use jwt_secret as secret_key if not explicitly set
+        if not self.secret_key and self.jwt_secret:
+            self.secret_key = self.jwt_secret
+        # Use jwt_expires_in if provided
+        if self.jwt_expires_in:
+            self.access_token_expire_minutes = self.jwt_expires_in
     
     # AI and API settings
     google_api_key: str = ""
