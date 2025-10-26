@@ -66,6 +66,9 @@ const AIExplorer = () => {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [showSplitScreen, setShowSplitScreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [activePromptIndex, setActivePromptIndex] = useState(0);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   useEffect(() => {
     const currentUser = getUser();
@@ -78,72 +81,141 @@ const AIExplorer = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Animated placeholder prompts
+  const placeholderPrompts = [
+    "Generate a 2-hour walk in Tokyo including coffee shops...",
+    "Create a 3-hour route in Paris including art galleries...",
+    "Plan a 4-hour tour in London including historical landmarks...",
+    "Design a 2-hour foodie adventure in New York...",
+    "Explore Barcelona architecture in a 3-hour walking tour...",
+    "Find hidden gems in Rome for a 4-hour cultural tour...",
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % placeholderPrompts.length);
+    }, 4000); // Change placeholder every 4 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Mouse parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   const exampleRoutes = [
     {
       id: '1',
       title: 'Coffee Culture Tour',
+      city: 'Tokyo',
       description: 'Discover the best coffee shops and cafes',
       duration: '2-3 hours',
       places: 4,
       category: 'Coffee',
       icon: <Coffee className="h-5 w-5" />,
-      prompt: 'I want to explore coffee culture in Berkeley',
-      image: '/api/placeholder/300/200'
+      prompt: 'Show me the best coffee shops and cafes in Tokyo',
+      gradient: 'from-blue-500 to-purple-600',
+      image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400'
     },
     {
       id: '2',
       title: 'Art Gallery Walk',
+      city: 'Paris',
       description: 'Visit the most inspiring art galleries and museums',
       duration: '3-4 hours',
       places: 5,
       category: 'Arts & Culture',
       icon: <Palette className="h-5 w-5" />,
-      prompt: 'Show me the best art galleries and museums in Berkeley',
-      image: '/api/placeholder/300/200'
+      prompt: 'Show me the best art galleries and museums in Paris',
+      gradient: 'from-pink-500 to-rose-600',
+      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400'
     },
     {
       id: '3',
-      title: 'Nature & Parks',
-      description: 'Explore beautiful parks and outdoor spaces',
-      duration: '2-3 hours',
-      places: 3,
-      category: 'Nature',
+      title: 'Historical Landmarks',
+      city: 'London',
+      description: 'Explore famous landmarks and historical sites',
+      duration: '3-4 hours',
+      places: 5,
+      category: 'History',
       icon: <Mountain className="h-5 w-5" />,
-      prompt: 'I want to visit parks and nature spots in Berkeley',
-      image: '/api/placeholder/300/200'
+      prompt: 'Create a route around Hyde Park and Trafalgar Square in London',
+      gradient: 'from-red-500 to-orange-600',
+      image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400'
     },
     {
       id: '4',
       title: 'Foodie Adventure',
+      city: 'New York',
       description: 'Taste the best local restaurants and food spots',
       duration: '3-4 hours',
       places: 6,
       category: 'Food & Drink',
       icon: <Utensils className="h-5 w-5" />,
-      prompt: 'Find me the best restaurants and food spots in Berkeley',
-      image: '/api/placeholder/300/200'
+      prompt: 'Find me the best restaurants and food spots in New York',
+      gradient: 'from-green-500 to-emerald-600',
+      image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400'
     },
     {
       id: '5',
-      title: 'Shopping & Markets',
-      description: 'Discover unique shops and local markets',
-      duration: '2-3 hours',
+      title: 'Architecture Tour',
+      city: 'Barcelona',
+      description: 'Discover unique architecture and modern design',
+      duration: '3-4 hours',
       places: 4,
-      category: 'Shopping',
+      category: 'Architecture',
       icon: <ShoppingBag className="h-5 w-5" />,
-      prompt: 'Show me the best shopping areas and markets in Berkeley',
-      image: '/api/placeholder/300/200'
+      prompt: 'Show me the best architecture and design spots in Barcelona',
+      gradient: 'from-indigo-500 to-blue-600',
+      image: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400'
     },
     {
       id: '6',
       title: 'Live Music & Nightlife',
+      city: 'Berlin',
       description: 'Experience the vibrant music scene and evening entertainment',
       duration: '3-5 hours',
       places: 3,
       category: 'Entertainment',
       icon: <Music className="h-5 w-5" />,
-      prompt: 'Where can I find live music and good nightlife in Berkeley?',
-      image: '/api/placeholder/300/200'
+      prompt: 'Where can I find live music and good nightlife in Berlin?',
+      gradient: 'from-amber-500 to-yellow-600',
+      image: 'https://images.unsplash.com/photo-1587330979470-3585ac3b4a57?w=400'
+    },
+    {
+      id: '7',
+      title: 'Cultural Heritage',
+      city: 'Rome',
+      description: 'Explore ancient ruins and cultural sites',
+      duration: '4-5 hours',
+      places: 4,
+      category: 'Culture',
+      icon: <Mountain className="h-5 w-5" />,
+      prompt: 'Show me the most important historical sites in Rome',
+      gradient: 'from-purple-500 to-pink-600',
+      image: 'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=400'
+    },
+    {
+      id: '8',
+      title: 'Nature & Parks',
+      city: 'Sydney',
+      description: 'Explore beautiful parks and coastal views',
+      duration: '2-3 hours',
+      places: 3,
+      category: 'Nature',
+      icon: <Mountain className="h-5 w-5" />,
+      prompt: 'I want to visit parks and nature spots in Sydney',
+      gradient: 'from-cyan-500 to-teal-600',
+      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
     },
   ];
 
@@ -239,34 +311,45 @@ const AIExplorer = () => {
   if (!user) return null;
 
   return (
-    <div className="h-screen flex bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-900 overflow-y-auto">
       {!showSplitScreen ? (
-        // Welcome Screen - Full Width
-        <div className="w-full flex flex-col">
-          {/* Chat Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h1 className="font-semibold text-gray-900 dark:text-white">AI City Explorer</h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Your personal travel companion</p>
-                </div>
-              </div>
+        // Welcome Screen - Full Width with Animated Hero
+        <div className="w-full flex flex-col relative min-h-screen">
+          {/* Animated Hero Background */}
+          <div className="absolute inset-0 -z-10">
+            {/* Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+              {/* Animated Circles */}
+              <div 
+                className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-200 rounded-full blur-3xl opacity-30 dark:opacity-10 animate-pulse"
+                style={{
+                  transform: `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)`
+                }}
+              />
+              <div 
+                className="absolute top-1/2 right-1/4 w-96 h-96 bg-purple-200 rounded-full blur-3xl opacity-30 dark:opacity-10 animate-pulse delay-300"
+                style={{
+                  transform: `translate(${-mousePosition.x * 2}px, ${-mousePosition.y * 2}px)`
+                }}
+              />
+              <div 
+                className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-pink-200 rounded-full blur-3xl opacity-30 dark:opacity-10 animate-pulse delay-700"
+                style={{
+                  transform: `translate(${mousePosition.x * 1.5}px, ${-mousePosition.y * 1.5}px)`
+                }}
+              />
             </div>
           </div>
 
-              {/* Centered Content */}
-              <div className="flex-1 flex flex-col items-center justify-center px-4">
-                <div className="max-w-2xl w-full text-center">
+              {/* Centered Content - No Header */}
+              <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 relative z-10">
+                <div className="max-w-4xl w-full">
                   {/* Main Title */}
-                  <div className="mb-8">
+                  <div className="mb-12 text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Sparkles className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
                       AI City Explorer
                     </h1>
                     <p className="text-lg text-gray-600 dark:text-gray-400">
@@ -274,56 +357,109 @@ const AIExplorer = () => {
                     </p>
                   </div>
 
-                  {/* Main Chat Input */}
-                  <div className="mb-8">
+                  {/* Main Chat Input - Emphasized with Animated Placeholder */}
+                  <div className="mb-12">
                     <div className="relative">
                       <Input
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Ask me about places, routes, or experiences... (e.g., 'coffee culture in Tokyo', 'hidden gems in Paris')"
-                        className="w-full h-16 text-lg px-6 pr-16 border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 bg-white dark:bg-gray-800"
+                        placeholder={placeholderPrompts[placeholderIndex]}
+                        className="w-full h-24 text-xl px-10 pr-28 border-3 border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-500 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-300 bg-white dark:bg-gray-800 placeholder:transition-all placeholder:duration-500"
                         disabled={isGenerating}
                       />
                       <Button 
                         onClick={() => handleSendMessage()}
                         disabled={isGenerating || !inputValue.trim()}
                         size="lg"
-                        className="absolute right-2 top-2 h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 shadow-lg"
+                        className="absolute right-4 top-4 h-16 w-16 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-400 shadow-xl hover:shadow-2xl"
                       >
                         {isGenerating ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <Loader2 className="w-6 h-6 animate-spin" />
                         ) : (
-                          <Send className="w-5 h-5" />
+                          <Send className="w-6 h-6" />
                         )}
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-                      Try: "coffee culture", "hidden gems", "parks and nature", "art galleries", or any city worldwide
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+                      Or tap a city card above to get started
                     </p>
                   </div>
 
-                  {/* Subtle Examples */}
+                  {/* Compact Square City Cards Carousel */}
                   <div className="mb-8">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Popular searches:</p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {exampleRoutes.slice(0, 4).map((example) => (
-                        <button
-                          key={example.id}
-                          onClick={() => handleSendMessage(example.prompt)}
-                          className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors duration-200 text-gray-700 dark:text-gray-300"
-                        >
-                          {example.title}
-                        </button>
-                      ))}
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">Explore cities worldwide</p>
+                    <div className="relative overflow-hidden rounded-2xl">
+                      {/* Infinite Scroll Container */}
+                      <div className="flex gap-4 overflow-hidden whitespace-nowrap">
+                        {/* Original Set */}
+                        <div className="flex gap-4 animate-scroll">
+                          {exampleRoutes.map((example) => (
+                            <button
+                              key={example.id}
+                              onClick={() => handleSendMessage(example.prompt)}
+                              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex-shrink-0 w-48 h-48"
+                              style={{
+                                backgroundImage: `url(${example.image})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                              }}
+                            >
+                              {/* Gradient Overlay */}
+                              <div className={`absolute inset-0 bg-gradient-to-br ${example.gradient} opacity-85 group-hover:opacity-75 transition-opacity duration-300`} />
+                              
+                              {/* Content */}
+                              <div className="relative z-10 h-full flex flex-col justify-between p-4">
+                                <div className="text-white">
+                                  <div className="text-xs font-semibold uppercase tracking-wide mb-1">{example.category}</div>
+                                  <h3 className="text-lg font-bold">{example.city}</h3>
+                                </div>
+                                <div className="text-white text-xs flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{example.duration}</span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        
+                        {/* Duplicate Set for Seamless Loop */}
+                        <div className="flex gap-4 animate-scroll">
+                          {exampleRoutes.map((example) => (
+                            <button
+                              key={`duplicate-${example.id}`}
+                              onClick={() => handleSendMessage(example.prompt)}
+                              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex-shrink-0 w-48 h-48"
+                              style={{
+                                backgroundImage: `url(${example.image})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                              }}
+                            >
+                              <div className={`absolute inset-0 bg-gradient-to-br ${example.gradient} opacity-85 group-hover:opacity-75 transition-opacity duration-300`} />
+                              
+                              <div className="relative z-10 h-full flex flex-col justify-between p-4">
+                                <div className="text-white">
+                                  <div className="text-xs font-semibold uppercase tracking-wide mb-1">{example.category}</div>
+                                  <h3 className="text-lg font-bold">{example.city}</h3>
+                                </div>
+                                <div className="text-white text-xs flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{example.duration}</span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   {/* Recent Routes - Only if exists */}
                   {getRoutes().length > 0 && (
-                    <div className="text-left">
+                    <div className="text-center mb-8">
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Recent routes:</p>
-                      <div className="space-y-2">
+                      <div className="flex flex-col gap-2 items-center">
                         {getRoutes().slice(0, 2).map((route) => (
                           <button
                             key={route.id}
@@ -332,9 +468,9 @@ const AIExplorer = () => {
                               setShowSplitScreen(true);
                               setSelectedPlace(route.places[0] || null);
                             }}
-                            className="w-full p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                            className="w-full max-w-md p-4 text-left bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl transition-colors duration-200 shadow-sm"
                           >
-                            <div className="font-medium text-gray-900 dark:text-white text-sm">
+                            <div className="font-medium text-gray-900 dark:text-white">
                               {route.name}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

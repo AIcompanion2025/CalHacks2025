@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from services.gemini_service import create_gemini_service
 from services.google_places_service import google_places_service
 from models.ai_route import AIRouteRequest, AIRouteResponse, AIRoute, AIPlace, RouteSuggestion, AIRouteSuggestionsResponse
+from config import settings
 import logging
 import asyncio
 
@@ -99,30 +100,77 @@ async def generate_ai_route_demo(request: AIRouteRequest):
             narrative = f"Embark on an exciting journey through {initial_route.get('name', 'Berkeley')}, where each stop offers unique experiences and discoveries. This carefully curated route takes you through the best that {request.city} has to offer, combining local favorites with hidden gems."
             refined_name = initial_route.get('name')
         
-        # Step 4: Create demo response (no database)
-        places_response = []
+        # Step 4: Calculate real walking times using Google Directions
+        enhanced_places_with_times = []
+        total_walking_time = 0
+        
         for i, place in enumerate(enriched_places):
+            walking_time_to_next = 0
+            
+            # Calculate walking time to next place (except for the last one)
+            if i < len(enriched_places) - 1:
+                try:
+                    next_place = enriched_places[i + 1]
+                    current_coords = place.get('coordinates', {'lat': 0.0, 'lng': 0.0})
+                    next_coords = next_place.get('coordinates', {'lat': 0.0, 'lng': 0.0})
+                    
+                    # Use Google Directions to calculate walking time
+                    gm_client = google_places_service.client
+                    directions = gm_client.directions(
+                        origin=(current_coords['lat'], current_coords['lng']),
+                        destination=(next_coords['lat'], next_coords['lng']),
+                        mode="walking"
+                    )
+                    
+                    if directions and directions[0].get('legs'):
+                        duration = directions[0]['legs'][0]['duration']['value']  # Duration in seconds
+                        walking_time_to_next = duration // 60  # Convert to minutes
+                        total_walking_time += walking_time_to_next
+                    else:
+                        walking_time_to_next = 10  # Fallback if calculation fails
+                        total_walking_time += 10
+                        
+                except Exception as e:
+                    logger.warning(f"Error calculating walking time: {str(e)}")
+                    walking_time_to_next = 10  # Fallback
+                    total_walking_time += 10
+            
+            # Use real review_count from Google Places API
+            review_count = place.get('review_count', 0)
+            
+            # Create place with REAL data only
+            if review_count == 0 or place.get('rating', 0) == 0:
+                logger.warning(f"Skipping {place.get('name')} - no real review data from Google Places")
+                continue
+            
             place_dict = AIPlace(
                 id=f"demo_place_{i}",
                 name=place.get('name', 'Unknown Place'),
                 category=place.get('category', 'Place'),
-                description=place.get('description', ''),
+                description=place.get('description', 'No description available'),
                 aiSummary=place.get('ai_description', ''),
                 rating=place.get('rating', 0.0),
-                reviewCount=place.get('review_count', 0),
+                reviewCount=review_count,  # REAL data from Google Places
                 priceLevel=place.get('price_level', 1),
-                walkingTime=10,  # Demo walking time
-                drivingTime=5,   # Demo driving time
+                walkingTime=walking_time_to_next,  # REAL calculated time
+                drivingTime=walking_time_to_next // 2,  # Approximate driving time
                 coordinates=place.get('coordinates', {'lat': 0.0, 'lng': 0.0}),
-                imageUrl="/placeholder.svg",
+                imageUrl=place.get('photo_url', "/placeholder.svg"),
                 tags=place.get('type', [])[:3] if place.get('type') else ['interesting'],
                 vibe=['popular'] if place.get('rating', 0) > 4.0 else ['interesting']
             )
-            places_response.append(place_dict)
+            enhanced_places_with_times.append(place_dict)
         
-        # Calculate demo times
-        total_walking_time = len(enriched_places) * 15  # 15 min per place
-        total_driving_time = len(enriched_places) * 10  # 10 min per place
+        # If we don't have enough valid places, return error
+        if not enhanced_places_with_times:
+            return AIRouteResponse(
+                success=False,
+                message="Could not get real data from Google Places API for the suggested places",
+                error="No valid places with real data"
+            )
+        
+        places_response = enhanced_places_with_times
+        total_driving_time = total_walking_time // 2
         
         route_response = AIRoute(
             id="demo_route_123",
