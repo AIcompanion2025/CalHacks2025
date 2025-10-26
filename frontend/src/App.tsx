@@ -12,7 +12,6 @@ import PlaceDetail from "./pages/PlaceDetail";
 import Profile from "./pages/Profile";
 import RoutesPage from "./pages/Routes";
 import RouteBuilder from "./pages/RouteBuilder";
-import Expenses from "./pages/Expenses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,11 +60,6 @@ const App = () => (
           <Route path="/route-builder" element={
             <ProtectedRoute>
               <RouteBuilder />
-            </ProtectedRoute>
-          } />
-          <Route path="/expenses" element={
-            <ProtectedRoute>
-              <Expenses />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />
