@@ -5,16 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { User, UserPreferences } from '@/types';
-import { saveUser, setOnboardingComplete } from '@/utils/storage';
-import { calculateStreetCred } from '@/utils/aiMock';
-import { Sparkles } from 'lucide-react';
+import { UserPreferences } from '@/types';
+import { setOnboardingComplete } from '@/utils/storage';
+import { api } from '@/utils/api';
+import { Sparkles, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const OnboardingFlow = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const { toast } = useToast();
+  const [step, setStep] = useState(0); // 0 = login/register choice, 1 = credentials, 2+ = preferences
+  const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
     mood: [],
     interests: [],
@@ -38,18 +43,57 @@ const OnboardingFlow = () => {
     });
   };
 
+  const handleAuth = async () => {
+    if (!email || !password || (!isLogin && !name)) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = isLogin
+        ? await api.login(email, password)
+        : await api.register(name, email, password);
+
+      if (response.error) {
+        toast({
+          title: 'Authentication failed',
+          description: response.error,
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      toast({
+        title: 'Success!',
+        description: isLogin ? 'Logged in successfully' : 'Account created successfully',
+      });
+
+      if (isLogin) {
+        // If logging in, skip preferences and go straight to app
+        setOnboardingComplete();
+        navigate('/');
+      } else {
+        // If registering, continue to preferences
+        setStep(2);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleComplete = () => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      streetCred: calculateStreetCred(0, 0),
-      preferences,
-      visitedPlaces: [],
-      createdAt: new Date().toISOString()
-    };
-    
-    saveUser(newUser);
     setOnboardingComplete();
     navigate('/');
   };
@@ -63,22 +107,46 @@ const OnboardingFlow = () => {
             <CardTitle>Welcome to AI City Companion</CardTitle>
           </div>
           <CardDescription>
-            Let's personalize your experience in {step === 1 ? '3' : step === 2 ? '2' : '1'} quick steps
+            {step === 0 ? 'Sign in or create an account to get started' :
+             step === 1 ? 'Enter your credentials' :
+             `Let's personalize your experience in ${step === 2 ? '2' : '1'} quick steps`}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {step === 0 && (
+            <div className="space-y-4">
+              <Button
+                onClick={() => { setIsLogin(true); setStep(1); }}
+                className="w-full"
+                size="lg"
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={() => { setIsLogin(false); setStep(1); }}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                Create Account
+              </Button>
+            </div>
+          )}
+
           {step === 1 && (
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Your Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="mt-1"
-                />
-              </div>
+              {!isLogin && (
+                <div>
+                  <Label htmlFor="name">Your Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="mt-1"
+                  />
+                </div>
+              )}
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -90,13 +158,42 @@ const OnboardingFlow = () => {
                   className="mt-1"
                 />
               </div>
-              <Button 
-                onClick={() => setStep(2)} 
-                disabled={!name || !email}
-                className="w-full"
-              >
-                Continue
-              </Button>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="mt-1"
+                  minLength={8}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(0)}
+                  className="flex-1"
+                  disabled={isLoading}
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleAuth}
+                  disabled={isLoading || !email || !password || (!isLogin && !name)}
+                  className="flex-1"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isLogin ? 'Signing in...' : 'Creating account...'}
+                    </>
+                  ) : (
+                    isLogin ? 'Sign In' : 'Continue'
+                  )}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -151,13 +248,10 @@ const OnboardingFlow = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                  Back
-                </Button>
-                <Button 
-                  onClick={() => setStep(3)} 
+                <Button
+                  onClick={() => setStep(3)}
                   disabled={preferences.mood.length === 0 || preferences.interests.length === 0}
-                  className="flex-1"
+                  className="w-full"
                 >
                   Continue
                 </Button>

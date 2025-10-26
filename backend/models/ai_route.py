@@ -12,7 +12,7 @@ class Coordinates(BaseModel):
 
 class AIPlace(BaseModel):
     """Place model compatible with AI route generator output."""
-    id: str
+    id: int
     name: str
     category: str
     description: str
@@ -30,10 +30,10 @@ class AIPlace(BaseModel):
 
 class AIRoute(BaseModel):
     """Route model compatible with AI route generator output."""
-    id: str
+    id: int
     name: str
     user_id: str
-    place_ids: List[str]
+    place_ids: List[int]
     places: List[AIPlace]
     narrative: str
     total_walking_time: int

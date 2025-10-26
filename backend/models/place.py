@@ -34,7 +34,7 @@ class Coordinates(BaseModel):
 
 
 class Place(BaseModel):
-    id: Optional[str] = Field(default=None, alias="_id")  # Changed from PyObjectId to str for demo compatibility
+    id: Optional[int] = Field(default=None, alias="_id")  # Changed to int
     name: str
     category: str
     description: str
@@ -74,7 +74,7 @@ class Place(BaseModel):
 
 
 class PlaceResponse(BaseModel):
-    id: str
+    id: int
     name: str
     category: str
     description: str
@@ -92,7 +92,7 @@ class PlaceResponse(BaseModel):
     @classmethod
     def from_db(cls, place_doc: dict):
         return cls(
-            id=str(place_doc["_id"]),
+            id=place_doc["_id"],
             name=place_doc["name"],
             category=place_doc["category"],
             description=place_doc["description"],

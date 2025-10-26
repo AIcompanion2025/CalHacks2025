@@ -2,9 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import connect_to_mongo, close_mongo_connection, get_database
-from routers import auth, users, places, routes, ai_routes_demo
+from routers import users, places, routes, ai_routes_demo
 import logging
-from routers import auth
 
 
 # Add this near the top of main.py, before creating the app
@@ -26,8 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
+# Include routers (auth removed for development)
 app.include_router(users.router)
 app.include_router(places.router)
 app.include_router(routes.router)

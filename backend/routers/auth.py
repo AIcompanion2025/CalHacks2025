@@ -85,9 +85,12 @@ async def login(credentials: UserLogin):
         expires_delta=access_token_expires
     )
     
-    # Convert user to response format
-    user_dict = user.model_dump(by_alias=True)
-    user_dict["_id"] = str(user.id)
+    # Convert user to response format - ensure _id is a string
+    user_dict = user.model_dump(by_alias=True, exclude={'password_hash'})
+    # Make sure _id is converted to string
+    if '_id' in user_dict:
+        user_dict["_id"] = str(user_dict["_id"])
+    
     user_response = UserResponse(**user_dict)
     
     return UserWithToken(user=user_response, token=access_token)

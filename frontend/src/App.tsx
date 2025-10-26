@@ -2,9 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { isOnboardingComplete } from "@/utils/storage";
-import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BottomNavigation from "@/components/navigation/BottomNavigation";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
@@ -16,16 +14,14 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  return isOnboardingComplete() ? (
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
     <div className="flex flex-col h-screen">
       <main className="flex-1 overflow-y-auto pb-16">
         {children}
       </main>
       <BottomNavigation />
     </div>
-  ) : (
-    <Navigate to="/onboarding" />
   );
 };
 
@@ -36,31 +32,30 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/onboarding" element={<OnboardingFlow />} />
           <Route path="/" element={
-            <ProtectedRoute>
+            <AppLayout>
               <Home />
-            </ProtectedRoute>
+            </AppLayout>
           } />
           <Route path="/place/:id" element={
-            <ProtectedRoute>
+            <AppLayout>
               <PlaceDetail />
-            </ProtectedRoute>
+            </AppLayout>
           } />
           <Route path="/profile" element={
-            <ProtectedRoute>
+            <AppLayout>
               <Profile />
-            </ProtectedRoute>
+            </AppLayout>
           } />
           <Route path="/routes" element={
-            <ProtectedRoute>
+            <AppLayout>
               <RoutesPage />
-            </ProtectedRoute>
+            </AppLayout>
           } />
           <Route path="/route-builder" element={
-            <ProtectedRoute>
+            <AppLayout>
               <RouteBuilder />
-            </ProtectedRoute>
+            </AppLayout>
           } />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -51,7 +51,7 @@ async def list_places(
 
 @router.get("/{place_id}", response_model=dict)
 async def get_place(
-    place_id: str
+    place_id: int
 ):
     """
     Get a single place by ID.
@@ -61,12 +61,8 @@ async def get_place(
     db = get_database()
     places_collection = db.places
     
-    # Validate ObjectId
-    if not ObjectId.is_valid(place_id):
-        raise HTTPException(status_code=400, detail="Invalid place ID format")
-    
     # Fetch place from database
-    place_doc = await places_collection.find_one({"_id": ObjectId(place_id)})
+    place_doc = await places_collection.find_one({"_id": place_id})
     
     if not place_doc:
         raise HTTPException(status_code=404, detail="Place not found")
