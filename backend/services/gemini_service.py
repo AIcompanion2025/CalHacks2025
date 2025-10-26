@@ -226,13 +226,20 @@ Create a walking tour with 3-5 interesting places. Your response MUST be ONLY va
   }}
 }}
 
-IMPORTANT:
+CRITICAL REQUIREMENTS:
 - Return ONLY the JSON object, no other text
 - Ensure all JSON brackets and quotes are properly closed
 - Include descriptions for ALL stops
 {location_instruction}
-- Make the route name creative and descriptive
-- If the user mentions specific landmarks or areas, use those as context for the city"""
+- ONLY suggest places that exist in the exact city specified in the user's request
+- If the user mentions "Tokyo" or "Tokyo, Japan", ONLY suggest places in Tokyo
+- If the user mentions "Paris" or "Paris, France", ONLY suggest places in Paris
+- If the user mentions "London" or "London, UK", ONLY suggest places in London
+- Do NOT suggest places from other cities
+- Each place name should be specific and include the city if needed to avoid ambiguity
+- Use well-known, popular places that tourists and locals know
+- If the user mentions specific landmarks or areas, use those as context for the city
+- Make the route name creative and descriptive of the city and theme"""
 
         return prompt
     
