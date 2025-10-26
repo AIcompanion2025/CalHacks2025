@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # AI and API settings
     google_api_key: str = ""
     gemini_api_key: str = ""
-    google_places_api_key: str =""
+    google_places_api_key: str = ""
     gemini_api_endpoint: str = "https://generativelanguage.googleapis.com"
     places_api_endpoint: str = "https://maps.googleapis.com/maps/api/place"
     

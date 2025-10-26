@@ -45,7 +45,7 @@ class AIRoute(BaseModel):
 class AIRouteRequest(BaseModel):
     """Request model for AI route generation."""
     prompt: str = Field(..., min_length=10, max_length=500, description="User's request for the route")
-    city: str = Field(default="Berkeley, CA", description="City to generate route for")
+    city: Optional[str] = Field(default=None, description="City to generate route for (optional - AI will detect from prompt)")
 
 
 class AIRouteResponse(BaseModel):
