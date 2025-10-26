@@ -1,15 +1,49 @@
-"""Routes router for AI City Companion API."""
-from fastapi import APIRouter, HTTPException, Depends
+"""Routes router for AI City Companion API - NO AUTH VERSION."""
+from fastapi import APIRouter, HTTPException
 from typing import List
 from bson import ObjectId
 from datetime import datetime
 from database import get_database
 from models.route import RouteCreate, RouteResponse
 from models.place import PlaceResponse
-from models.user import User
 from utils.narrative import generate_route_narrative
 
 router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
+
+
+async def get_or_create_mock_user(db):
+    """Get or create a mock user for development without auth."""
+    from models.user import UserInDB
+    
+    user_data = await db.users.find_one({"email": "mock@example.com"})
+    
+    if not user_data:
+        # Create mock user
+        user_dict = {
+            "name": "Mock User",
+            "email": "mock@example.com",
+            "password_hash": "mock_hash",
+            "street_cred": 0,
+            "visited_places": [],
+            "preferences": {
+                "mood": [],
+                "interests": [],
+                "pace": "moderate",
+                "budget": "moderate",
+                "atmosphere": []
+            },
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        result = await db.users.insert_one(user_dict)
+        user_dict["_id"] = str(result.inserted_id)
+        return UserInDB(**user_dict)
+    
+    # Convert ObjectId to string
+    if "_id" in user_data and isinstance(user_data["_id"], ObjectId):
+        user_data["_id"] = str(user_data["_id"])
+    
+    return UserInDB(**user_data)
 
 
 @router.post("", response_model=dict)
@@ -30,6 +64,8 @@ async def create_route(
     routes_collection = db.routes
     users_collection = db.users
     
+    current_user = await get_or_create_mock_user(db)
+    
     # Validate minimum 2 places
     if len(route_data.place_ids) < 2:
         raise HTTPException(
@@ -40,13 +76,7 @@ async def create_route(
     # Validate all place IDs and fetch place details
     place_objects = []
     for place_id in route_data.place_ids:
-        if not ObjectId.is_valid(place_id):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid place ID format: {place_id}"
-            )
-        
-        place_doc = await places_collection.find_one({"_id": ObjectId(place_id)})
+        place_doc = await places_collection.find_one({"_id": place_id})
         if not place_doc:
             raise HTTPException(
                 status_code=404,
@@ -65,7 +95,7 @@ async def create_route(
     route_doc = {
         "user_id": current_user.id,
         "name": route_data.name,
-        "place_ids": [ObjectId(pid) for pid in route_data.place_ids],
+        "place_ids": route_data.place_ids,
         "total_walking_time": total_walking_time,
         "total_driving_time": total_driving_time,
         "narrative": narrative,
@@ -98,7 +128,7 @@ async def create_route(
     
     # Build response
     route_response = {
-        "_id": str(route_doc["_id"]),
+        "_id": route_doc["_id"],
         "user_id": current_user.id,
         "name": route_doc["name"],
         "place_ids": route_data.place_ids,
@@ -113,9 +143,7 @@ async def create_route(
 
 
 @router.get("", response_model=dict)
-async def list_routes(
-    current_user: User
-):
+async def list_routes():
     """
     List all routes created by the current user.
     
@@ -124,6 +152,8 @@ async def list_routes(
     db = get_database()
     routes_collection = db.routes
     places_collection = db.places
+    
+    current_user = await get_or_create_mock_user(db)
     
     # Fetch user's routes
     routes_cursor = routes_collection.find(
@@ -144,10 +174,10 @@ async def list_routes(
         
         # Build route response
         route_response = {
-            "_id": str(route_doc["_id"]),
+            "_id": route_doc["_id"],
             "user_id": route_doc["user_id"],
             "name": route_doc["name"],
-            "place_ids": [str(pid) for pid in route_doc.get("place_ids", [])],
+            "place_ids": route_doc.get("place_ids", []),
             "total_walking_time": route_doc.get("total_walking_time", 0),
             "total_driving_time": route_doc.get("total_driving_time", 0),
             "narrative": route_doc.get("narrative", ""),
@@ -161,8 +191,7 @@ async def list_routes(
 
 @router.get("/{route_id}", response_model=dict)
 async def get_route(
-    route_id: str,
-    current_user: User
+    route_id: int
 ):
     """
     Get a single route by ID with full place details.
@@ -175,12 +204,10 @@ async def get_route(
     routes_collection = db.routes
     places_collection = db.places
     
-    # Validate ObjectId
-    if not ObjectId.is_valid(route_id):
-        raise HTTPException(status_code=400, detail="Invalid route ID format")
+    current_user = await get_or_create_mock_user(db)
     
     # Fetch route from database
-    route_doc = await routes_collection.find_one({"_id": ObjectId(route_id)})
+    route_doc = await routes_collection.find_one({"_id": route_id})
     
     if not route_doc:
         raise HTTPException(status_code=404, detail="Route not found")
@@ -198,10 +225,10 @@ async def get_route(
     
     # Build route response
     route_response = {
-        "_id": str(route_doc["_id"]),
+        "_id": route_doc["_id"],
         "user_id": route_doc["user_id"],
         "name": route_doc["name"],
-        "place_ids": [str(pid) for pid in route_doc.get("place_ids", [])],
+        "place_ids": route_doc.get("place_ids", []),
         "total_walking_time": route_doc.get("total_walking_time", 0),
         "total_driving_time": route_doc.get("total_driving_time", 0),
         "narrative": route_doc.get("narrative", ""),
@@ -214,8 +241,7 @@ async def get_route(
 
 @router.delete("/{route_id}", response_model=dict)
 async def delete_route(
-    route_id: str,
-    current_user: User
+    route_id: str
 ):
     """
     Delete a route by ID.
@@ -227,12 +253,10 @@ async def delete_route(
     db = get_database()
     routes_collection = db.routes
     
-    # Validate ObjectId
-    if not ObjectId.is_valid(route_id):
-        raise HTTPException(status_code=400, detail="Invalid route ID format")
+    current_user = await get_or_create_mock_user(db)
     
     # Fetch route to verify ownership
-    route_doc = await routes_collection.find_one({"_id": ObjectId(route_id)})
+    route_doc = await routes_collection.find_one({"_id": route_id})
     
     if not route_doc:
         raise HTTPException(status_code=404, detail="Route not found")
@@ -242,6 +266,6 @@ async def delete_route(
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Delete route
-    await routes_collection.delete_one({"_id": ObjectId(route_id)})
+    await routes_collection.delete_one({"_id": route_id})
     
     return {"message": "Route deleted successfully"}

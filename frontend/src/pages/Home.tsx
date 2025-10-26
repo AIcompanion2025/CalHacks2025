@@ -11,7 +11,8 @@ import { generatePersonalizedRecommendations, calculateLevel, getLevelTitle } fr
 import { aiRouteService, AIRouteResponse } from '@/services/aiRouteService';
 import { Place, User } from '@/types';
 import { Sparkles, Award, Loader2, AlertCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { api } from '@/utils/api';
+import { toast } from 'sonner';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -35,7 +36,10 @@ const Home = () => {
   }, []);
 
   const handleMoodSearch = async () => {
-    if (!user) return;
+    if (!user || !moodInput.trim()) {
+      toast.error('Please enter how you\'re feeling');
+      return;
+    }
 
     const prompt = moodInput || user.preferences.mood[0] || 'curious';
     
@@ -53,37 +57,45 @@ const Home = () => {
     // For more complex prompts, use AI route generation
     setIsGenerating(true);
     try {
-      const response: AIRouteResponse = await aiRouteService.generateRoute({
-        prompt: `I want to explore and I'm feeling ${prompt}`
-        // City will be auto-detected from the prompt
-      });
+      // Call the AI route demo endpoint
+      const response = await api.generateAIRouteDemo(
+        `I'm feeling ${moodInput}. Show me places that match this mood in Berkeley, CA`,
+        'Berkeley, CA'
+      );
 
-      if (response.success && response.route) {
-        const places = aiRouteService.convertAIRouteToPlaces(response.route);
-        setRecommendations(places);
-        setAiRoute(response.route);
-        
-        toast({
-          title: "AI Route Generated!",
-          description: `Found ${places.length} places for your ${prompt} mood`,
-        });
-      } else {
+      if (response.error) {
+        toast.error('Failed to generate recommendations');
         // Fallback to mock data
         const recs = generatePersonalizedRecommendations(
-          prompt,
+          moodInput || user.preferences.mood[0] || 'curious',
           60,
           user.preferences.interests
         );
         setRecommendations(recs);
-        
-        toast({
-          title: "Using Fallback Recommendations",
-          description: "AI service unavailable, showing curated suggestions",
-          variant: "destructive",
-        });
+      } else if (response.data?.route?.places) {
+        // Convert AI route places to our Place format
+        const aiPlaces: Place[] = response.data.route.places.map((place: any) => ({
+          id: place.id,
+          name: place.name,
+          category: place.category,
+          description: place.description,
+          aiSummary: place.aiSummary || place.description,
+          rating: place.rating,
+          reviewCount: place.reviewCount,
+          priceLevel: place.priceLevel,
+          walkingTime: place.walkingTime,
+          drivingTime: place.drivingTime,
+          coordinates: place.coordinates,
+          imageUrl: place.imageUrl,
+          tags: place.tags || [],
+          vibe: place.vibe || []
+        }));
+        setRecommendations(aiPlaces);
+        toast.success(`Found ${aiPlaces.length} places for your mood!`);
       }
     } catch (error) {
-      console.error('Error generating AI route:', error);
+      console.error('Error generating AI recommendations:', error);
+      toast.error('Something went wrong. Using local recommendations.');
       // Fallback to mock data
       const recs = generatePersonalizedRecommendations(
         prompt,
@@ -91,12 +103,6 @@ const Home = () => {
         user.preferences.interests
       );
       setRecommendations(recs);
-      
-      toast({
-        title: "Error",
-        description: "Failed to generate AI route, showing fallback recommendations",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
     }
@@ -106,12 +112,48 @@ const Home = () => {
     navigate(`/place/${place.id}`);
   };
 
-  const handleQuickMood = (mood: string) => {
+  const handleQuickMood = async (mood: string) => {
     setMoodInput(mood);
-    if (user) {
+    if (!user) return;
+
+    setIsGenerating(true);
+    try {
+      const response = await api.generateAIRouteDemo(
+        `I'm feeling ${mood}. Show me places that match this mood in Berkeley, CA`,
+        'Berkeley, CA'
+      );
+
+      if (response.error) {
+        // Fallback to mock data
+        const recs = generatePersonalizedRecommendations(mood, 60, user.preferences.interests);
+        setRecommendations(recs);
+      } else if (response.data?.route?.places) {
+        const aiPlaces: Place[] = response.data.route.places.map((place: any) => ({
+          id: place.id,
+          name: place.name,
+          category: place.category,
+          description: place.description,
+          aiSummary: place.aiSummary || place.description,
+          rating: place.rating,
+          reviewCount: place.reviewCount,
+          priceLevel: place.priceLevel,
+          walkingTime: place.walkingTime,
+          drivingTime: place.drivingTime,
+          coordinates: place.coordinates,
+          imageUrl: place.imageUrl,
+          tags: place.tags || [],
+          vibe: place.vibe || []
+        }));
+        setRecommendations(aiPlaces);
+        toast.success(`Found ${aiPlaces.length} places for ${mood} mood!`);
+      }
+    } catch (error) {
+      console.error('Error generating AI recommendations:', error);
       const recs = generatePersonalizedRecommendations(mood, 60, user.preferences.interests);
       setRecommendations(recs);
       setAiRoute(null); // Clear AI route for quick moods
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -168,11 +210,7 @@ const Home = () => {
                 className="text-sm"
                 disabled={isGenerating}
               />
-              <Button 
-                onClick={handleMoodSearch} 
-                size="sm"
-                disabled={isGenerating}
-              >
+              <Button onClick={handleMoodSearch} size="sm" disabled={isGenerating || !moodInput.trim()}>
                 {isGenerating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (

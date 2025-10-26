@@ -5,7 +5,8 @@ const STORAGE_KEYS = {
   ROUTES: 'ai_city_companion_routes',
   ADVENTURES: 'ai_city_companion_adventures',
   ONBOARDING_COMPLETE: 'ai_city_companion_onboarding',
-  EXPENSES: 'ai_city_companion_expenses'
+  EXPENSES: 'ai_city_companion_expenses',
+  AUTH_TOKEN: 'ai_city_companion_token'
 };
 
 export const saveUser = (user: User): void => {
@@ -47,7 +48,7 @@ export const getAdventures = (): Adventure[] => {
   return data ? JSON.parse(data) : [];
 };
 
-export const updateUserVisitedPlaces = (placeId: string): void => {
+export const updateUserVisitedPlaces = (placeId: number): void => {
   const user = getUser();
   if (user && !user.visitedPlaces.includes(placeId)) {
     user.visitedPlaces.push(placeId);
@@ -66,10 +67,26 @@ export const getExpenses = (): Expense[] => {
   return data ? JSON.parse(data) : [];
 };
 
-export const deleteExpense = (expenseId: string): void => {
+export const deleteExpense = (expenseId: number): void => {
   const expenses = getExpenses();
   const filtered = expenses.filter(e => e.id !== expenseId);
   localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(filtered));
+};
+
+export const saveAuthToken = (token: string): void => {
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+};
+
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+};
+
+export const removeAuthToken = (): void => {
+  localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+};
+
+export const isAuthenticated = (): boolean => {
+  return !!getAuthToken();
 };
 
 export const clearAllData = (): void => {

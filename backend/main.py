@@ -2,7 +2,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import connect_to_mongo, close_mongo_connection, get_database
-from routers import auth, users, places, routes, ai_routes_demo
+from routers import users, places, routes, ai_routes_demo
+import logging
+
+
+# Add this near the top of main.py, before creating the app
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="AI City Companion API",
@@ -19,8 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth.router)
+# Include routers (auth removed for development)
 app.include_router(users.router)
 app.include_router(places.router)
 app.include_router(routes.router)
@@ -28,9 +33,13 @@ app.include_router(ai_routes_demo.router)
 
 
 @app.on_event("startup")
-def startup_event():
-    """Connect to MongoDB on startup."""
-    connect_to_mongo()
+async def startup_event():
+    logger.info("🚀 STARTUP EVENT TRIGGERED")
+    try:
+        await connect_to_mongo()
+        logger.info("✓ Database connection established in startup")
+    except Exception as e:
+        logger.error(f"❌ Failed to connect to database in startup: {e}")
 
 
 @app.on_event("shutdown")

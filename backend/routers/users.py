@@ -1,10 +1,9 @@
-"""User profile and preferences management endpoints."""
-from fastapi import APIRouter, Depends, HTTPException, status
+"""User profile and preferences management endpoints - NO AUTH VERSION."""
+from fastapi import APIRouter, HTTPException, status
 from typing import Dict, Any
 from datetime import datetime
 from bson import ObjectId
 
-from services.auth import get_current_user  # your auth dependency
 from models.user import UserInDB, UserResponse, UserPreferences
 from database import get_database
 from utils.gamification import calculate_level, get_level_title, get_level_progress
@@ -12,6 +11,9 @@ from pydantic import BaseModel, Field
 
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
+
+# Mock user ID for development without auth
+MOCK_USER_ID = "mock_user_123"
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -51,6 +53,40 @@ class VisitPlaceResponse(BaseModel):
     level: int
     visitedPlaces: list[str]
 
+
+async def get_or_create_mock_user(db) -> UserInDB:
+    """Get or create a mock user for development without auth."""
+    user_data = await db.users.find_one({"email": "mock@example.com"})
+    
+    if not user_data:
+        # Create mock user
+        user_dict = {
+            "name": "Mock User",
+            "email": "mock@example.com",
+            "password_hash": "mock_hash",
+            "street_cred": 0,
+            "visited_places": [],
+            "preferences": {
+                "mood": [],
+                "interests": [],
+                "pace": "moderate",
+                "budget": "moderate",
+                "atmosphere": []
+            },
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        result = await db.users.insert_one(user_dict)
+        user_dict["_id"] = str(result.inserted_id)
+        return UserInDB(**user_dict)
+    
+    # Convert ObjectId to string
+    if "_id" in user_data and isinstance(user_data["_id"], ObjectId):
+        user_data["_id"] = str(user_data["_id"])
+    
+    return UserInDB(**user_data)
+
+
 async def get_user_profile(user: UserInDB, db=None) -> ProfileResponse:
     """
     Returns a ProfileResponse for a given user.
@@ -73,12 +109,10 @@ async def get_user_profile(user: UserInDB, db=None) -> ProfileResponse:
 
     return ProfileResponse(user=user_response, stats=stats)
 
-router = APIRouter()
 
 @router.get("/profile", response_model=ProfileResponse)
-async def profile(
-    current_user: UserInDB = Depends(get_current_user)  # inject logged-in user
-):
+async def profile():
+    """Get user profile - uses mock user for development."""
     db = get_database()
     if db is None:
         raise HTTPException(
@@ -86,23 +120,17 @@ async def profile(
             detail="Database connection unavailable"
         )
 
+    current_user = await get_or_create_mock_user(db)
     return await get_user_profile(current_user, db=db)
 
 
 
 @router.put("/profile", response_model=Dict[str, UserResponse])
 async def update_profile(
-    profile_update: ProfileUpdateRequest,
-    current_user: UserInDB
+    profile_update: ProfileUpdateRequest
 ) -> Dict[str, UserResponse]:
     """
     Update user profile (name only, email is immutable).
-    
-    Args:
-        profile_update: Profile update data
-        
-    Returns:
-        Updated user object
     """
     db = get_database()
     if db is None:
@@ -110,6 +138,8 @@ async def update_profile(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection unavailable"
         )
+    
+    current_user = await get_or_create_mock_user(db)
     
     # Update user in database
     update_data = {
@@ -118,7 +148,7 @@ async def update_profile(
     }
     
     result = await db.users.update_one(
-        {"_id": current_user.id},
+        {"_id": ObjectId(current_user.id)},
         {"$set": update_data}
     )
     
@@ -129,7 +159,7 @@ async def update_profile(
         )
     
     # Fetch updated user
-    updated_user_data = await db.users.find_one({"_id": current_user.id})
+    updated_user_data = await db.users.find_one({"_id": ObjectId(current_user.id)})
     if updated_user_data is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -145,17 +175,10 @@ async def update_profile(
 
 @router.put("/preferences", response_model=Dict[str, UserPreferences])
 async def update_preferences(
-    preferences_update: PreferencesUpdateRequest,
-    current_user: UserInDB
+    preferences_update: PreferencesUpdateRequest
 ) -> Dict[str, UserPreferences]:
     """
     Update user preferences for personalized recommendations.
-    
-    Args:
-        preferences_update: Preferences update data
-        
-    Returns:
-        Updated preferences object
     """
     db = get_database()
     if db is None:
@@ -163,6 +186,8 @@ async def update_preferences(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection unavailable"
         )
+    
+    current_user = await get_or_create_mock_user(db)
     
     # Prepare preferences data
     preferences_data = preferences_update.model_dump()
@@ -174,7 +199,7 @@ async def update_preferences(
     }
     
     result = await db.users.update_one(
-        {"_id": current_user.id},
+        {"_id": ObjectId(current_user.id)},
         {"$set": update_data}
     )
     
@@ -192,17 +217,10 @@ async def update_preferences(
 
 @router.post("/visit-place", response_model=VisitPlaceResponse)
 async def visit_place(
-    visit_request: VisitPlaceRequest,
-    current_user: UserInDB
+    visit_request: VisitPlaceRequest
 ) -> VisitPlaceResponse:
     """
     Mark a place as visited and update Street Cred.
-    
-    Args:
-        visit_request: Place ID to mark as visited
-        
-    Returns:
-        Updated Street Cred, level, and visited places list
     """
     db = get_database()
     if db is None:
@@ -211,6 +229,7 @@ async def visit_place(
             detail="Database connection unavailable"
         )
     
+    current_user = await get_or_create_mock_user(db)
     place_id = visit_request.placeId
     
     # Check if place exists
@@ -243,7 +262,7 @@ async def visit_place(
     
     # Update user in database
     result = await db.users.update_one(
-        {"_id": current_user.id},
+        {"_id": ObjectId(current_user.id)},
         {
             "$set": {
                 "street_cred": new_street_cred,

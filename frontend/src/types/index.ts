@@ -12,12 +12,12 @@ export interface User {
   email: string;
   streetCred: number;
   preferences: UserPreferences;
-  visitedPlaces: string[];
+  visitedPlaces: number[];
   createdAt: string;
 }
 
 export interface Place {
-  id: string;
+  id: number;
   name: string;
   category: string;
   description: string;
@@ -37,7 +37,7 @@ export interface Place {
 }
 
 export interface Route {
-  id: string;
+  id: number;
   name: string;
   places: Place[];
   totalWalkingTime: number;
@@ -47,8 +47,8 @@ export interface Route {
 }
 
 export interface Adventure {
-  id: string;
-  routeId: string;
+  id: number;
+  routeId: number;
   title: string;
   content: string;
   places: Place[];
@@ -57,11 +57,11 @@ export interface Adventure {
 }
 
 export interface Expense {
-  id: string;
+  id: number;
   amount: number;
   category: 'food' | 'transport' | 'shopping' | 'entertainment' | 'accommodation' | 'other';
   description: string;
-  placeId?: string;
+  placeId?: number;
   placeName?: string;
   date: string;
   notes?: string;
