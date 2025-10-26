@@ -79,7 +79,7 @@ const AIRouteBuilder = () => {
     setIsSaving(true);
     try {
       // Save AI route using the special endpoint that handles place creation
-      const response = await fetch('http://localhost:8000/api/v1/ai/save-ai-route', {
+      const response = await fetch('https://calhacks2025-i4tb.onrender.com/api/v1/ai/save-ai-route', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

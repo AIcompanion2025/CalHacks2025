@@ -1,7 +1,7 @@
 // API service for connecting to the backend AI route generation
 import { Place, Route } from '@/types';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1/ai';
+const API_BASE_URL = 'https://calhacks2025-i4tb.onrender.com/api/v1/ai';
 
 export interface AIRouteRequest {
   prompt: string;
