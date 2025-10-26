@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import CompactPlaceCard from '@/components/places/CompactPlaceCard';
 import AppLogo from '@/components/logo/AppLogo';
-import { getUser } from '@/utils/storage';
+import { getUser, saveUser } from '@/utils/storage';
 import { generatePersonalizedRecommendations, calculateLevel, getLevelTitle } from '@/utils/aiMock';
 import { aiRouteService, AIRouteResponse } from '@/services/aiRouteService';
 import { Place, User } from '@/types';
@@ -23,16 +23,33 @@ const Home = () => {
   const [aiRoute, setAiRoute] = useState<any>(null);
 
   useEffect(() => {
-    const currentUser = getUser();
-    if (currentUser) {
-      setUser(currentUser);
-      const recs = generatePersonalizedRecommendations(
-        currentUser.preferences.mood[0] || 'curious',
-        60,
-        currentUser.preferences.interests
-      );
-      setRecommendations(recs);
+    let currentUser = getUser();
+    if (!currentUser) {
+      // Create a default user if none exists
+      currentUser = {
+        id: '1',
+        name: 'Explorer',
+        email: 'explorer@example.com',
+        preferences: {
+          interests: ['culture', 'food', 'nature'],
+          mood: ['curious'],
+          budget: 'moderate',
+          pace: 'moderate',
+          atmosphere: ['casual', 'vibrant']
+        },
+        visitedPlaces: [],
+        streetCred: 0,
+        createdAt: new Date().toISOString()
+      };
+      saveUser(currentUser);
     }
+    setUser(currentUser);
+    const recs = generatePersonalizedRecommendations(
+      currentUser.preferences.mood[0] || 'curious',
+      60,
+      currentUser.preferences.interests
+    );
+    setRecommendations(recs);
   }, []);
 
   const handleMoodSearch = async () => {

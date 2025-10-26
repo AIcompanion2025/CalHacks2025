@@ -9,7 +9,7 @@ import RouteNarrative from '@/components/route/RouteNarrative';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { aiRouteService, AIRouteResponse } from '@/services/aiRouteService';
 import { Place, User, Route } from '@/types';
-import { getUser, saveRoute, getRoutes } from '@/utils/storage';
+import { getUser, saveUser, saveRoute, getRoutes } from '@/utils/storage';
 import { 
   Send, 
   Loader2, 
@@ -71,10 +71,27 @@ const AIExplorer = () => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   useEffect(() => {
-    const currentUser = getUser();
-    if (currentUser) {
-      setUser(currentUser);
+    let currentUser = getUser();
+    if (!currentUser) {
+      // Create a default user if none exists
+      currentUser = {
+        id: '1',
+        name: 'Explorer',
+        email: 'explorer@example.com',
+        preferences: {
+          interests: ['culture', 'food', 'nature'],
+          mood: ['curious'],
+          budget: 'moderate',
+          pace: 'moderate',
+          atmosphere: ['casual', 'vibrant']
+        },
+        visitedPlaces: [],
+        streetCred: 0,
+        createdAt: new Date().toISOString()
+      };
+      saveUser(currentUser);
     }
+    setUser(currentUser);
   }, []);
 
   useEffect(() => {
@@ -237,10 +254,11 @@ const AIExplorer = () => {
 
     try {
         // For modification prompts, pass the previous city context
-        const previousCity = currentRoute ? extractCityFromCurrentRoute(currentRoute) : undefined;
+        const previousCity = currentRoute ? extractCityFromCurrentRoute(currentRoute) : 'London';
         const response: AIRouteResponse = await aiRouteService.generateRoute({
-          prompt: prompt
-        }, previousCity);
+          prompt: prompt,
+          city: previousCity
+        });
 
       if (response.success && response.route) {
         const places = aiRouteService.convertAIRouteToPlaces(response.route);
