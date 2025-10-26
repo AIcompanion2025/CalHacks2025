@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ai-city-companion-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: GOOGLE_API_KEY
+        value: AIzaSyBdiibSY28S5DStZl_ChdaB5PH7SqvBj-Y
+      - key: GEMINI_API_KEY
+        value: AIzaSyCRF7t72BCLWxh_-qBef3Q7VHYhJEmKaMA
+      - key: GOOGLE_PLACES_API_KEY
+        value: AIzaSyBdiibSY28S5DStZl_ChdaB5PH7SqvBj-Y
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: JWT_SECRET
+        value: demo-secret-key-change-in-production
+      - key: JWT_EXPIRES_IN
+        value: 10080
+      - key: PORT
+        value: 10000
+
