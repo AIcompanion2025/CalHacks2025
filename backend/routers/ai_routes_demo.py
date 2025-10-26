@@ -1,6 +1,6 @@
 """Demo AI Route Generation router - Works without MongoDB for CalHacks demo."""
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 from services.gemini_service import create_gemini_service
 from services.google_places_service import google_places_service
@@ -8,10 +8,21 @@ from models.ai_route import AIRouteRequest, AIRouteResponse, AIRoute, AIPlace, R
 from config import settings
 import logging
 import asyncio
+from database import get_database
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai-routes-demo"])
+
+
+class SaveAIRouteRequest(BaseModel):
+    """Request model for saving an AI-generated route."""
+    route_name: str = Field(..., min_length=1, max_length=200)
+    places: List[AIPlace]
+    narrative: str
+    total_walking_time: int
+    total_driving_time: int
 
 
 @router.get("/health")
@@ -198,6 +209,95 @@ async def generate_ai_route_demo(request: AIRouteRequest):
             message="Failed to generate route",
             error=str(e)
         )
+
+
+@router.post("/save-ai-route", response_model=dict)
+async def save_ai_route(request: SaveAIRouteRequest):
+    """
+    Save an AI-generated route to the database.
+    
+    This endpoint:
+    1. Saves the AI-generated places to the database
+    2. Creates a route with those place IDs
+    3. Returns the saved route with database IDs
+    """
+    try:
+        db = get_database()
+        places_collection = db.places
+        routes_collection = db.routes
+        users_collection = db.users
+        
+        # Get or create mock user
+        from routers.routes import get_or_create_mock_user
+        current_user = await get_or_create_mock_user(db)
+        
+        # Step 1: Save places to database and collect their IDs
+        saved_place_ids = []
+        
+        for place in request.places:
+            # Create place document
+            place_doc = {
+                "name": place.name,
+                "category": place.category,
+                "description": place.description,
+                "ai_summary": place.aiSummary,
+                "rating": place.rating,
+                "review_count": place.reviewCount,
+                "price_level": place.priceLevel,
+                "walking_time": place.walkingTime,
+                "driving_time": place.drivingTime,
+                "coordinates": {
+                    "lat": place.coordinates['lat'],
+                    "lng": place.coordinates['lng']
+                },
+                "image_url": place.imageUrl,
+                "tags": place.tags,
+                "vibe": place.vibe,
+                "created_at": datetime.utcnow()
+            }
+            
+            # Insert place and get its ID
+            result = await places_collection.insert_one(place_doc)
+            saved_place_ids.append(result.inserted_id)
+        
+        # Step 2: Create route with the saved place IDs
+        route_doc = {
+            "user_id": current_user.id,
+            "name": request.route_name,
+            "place_ids": saved_place_ids,
+            "total_walking_time": request.total_walking_time,
+            "total_driving_time": request.total_driving_time,
+            "narrative": request.narrative,
+            "created_at": datetime.utcnow()
+        }
+        
+        result = await routes_collection.insert_one(route_doc)
+        route_doc["_id"] = result.inserted_id
+        
+        # Step 3: Update user's Street Cred
+        routes_count = await routes_collection.count_documents({"user_id": current_user.id})
+        from utils.gamification import calculate_street_cred
+        new_street_cred = calculate_street_cred(
+            visited_places=current_user.visited_places,
+            routes_completed=routes_count
+        )
+        
+        from bson import ObjectId
+        await users_collection.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$set": {"street_cred": new_street_cred}}
+        )
+        
+        return {
+            "success": True,
+            "message": f"Successfully saved route: {request.route_name}",
+            "route_id": str(route_doc["_id"]),
+            "place_count": len(saved_place_ids)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error saving AI route: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save route: {str(e)}")
 
 
 @router.get("/route-suggestions-demo", response_model=AIRouteSuggestionsResponse)

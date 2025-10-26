@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { aiRouteService, AIRouteResponse, RouteSuggestion } from '@/services/aiRouteService';
 import { Place, Route } from '@/types';
-import { Sparkles, Loader2, ArrowLeft, MapPin, Clock, Users } from 'lucide-react';
+import { Sparkles, Loader2, ArrowLeft, MapPin, Clock, Users, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { api } from '@/utils/api';
 
 const AIRouteBuilder = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const AIRouteBuilder = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiRoute, setAiRoute] = useState<Route | null>(null);
   const [suggestions, setSuggestions] = useState<RouteSuggestion[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleGenerateRoute = async () => {
     if (!prompt.trim()) {
@@ -32,8 +34,8 @@ const AIRouteBuilder = () => {
     setIsGenerating(true);
     try {
       const response: AIRouteResponse = await aiRouteService.generateRoute({
-        prompt: prompt.trim()
-        // City will be auto-detected from the prompt, or use the selected city
+        prompt: prompt.trim(),
+        city: city
       });
 
       if (response.success && response.route) {
@@ -69,6 +71,72 @@ const AIRouteBuilder = () => {
 
   const handlePlaceClick = (place: Place) => {
     navigate(`/place/${place.id}`);
+  };
+
+  const handleSaveRoute = async () => {
+    if (!aiRoute) return;
+
+    setIsSaving(true);
+    try {
+      // Save AI route using the special endpoint that handles place creation
+      const response = await fetch('http://localhost:8000/api/v1/ai/save-ai-route', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          route_name: aiRoute.name,
+          places: aiRoute.places.map(place => ({
+            id: place.id,
+            name: place.name,
+            category: place.category,
+            description: place.description,
+            aiSummary: place.aiSummary,
+            rating: place.rating,
+            reviewCount: place.reviewCount,
+            priceLevel: place.priceLevel,
+            walkingTime: place.walkingTime,
+            drivingTime: place.drivingTime,
+            coordinates: place.coordinates,
+            imageUrl: place.imageUrl,
+            tags: place.tags,
+            vibe: place.vibe,
+          })),
+          narrative: aiRoute.narrative,
+          total_walking_time: aiRoute.totalWalkingTime,
+          total_driving_time: aiRoute.totalDrivingTime,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        toast({
+          title: "Failed to save route",
+          description: data.detail || "Please try again",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Route Saved!",
+          description: `"${aiRoute.name}" has been added to your routes`,
+        });
+        
+        // Navigate to routes page after a short delay
+        setTimeout(() => {
+          navigate('/routes');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error saving route:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save route. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -238,6 +306,25 @@ const AIRouteBuilder = () => {
                   <span>AI Generated</span>
                 </div>
               </div>
+
+              <Button
+                onClick={handleSaveRoute}
+                disabled={isSaving}
+                className="w-full bg-green-600 hover:bg-green-700"
+                size="lg"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Saving Route...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save to My Routes
+                  </>
+                )}
+              </Button>
 
               <div className="grid grid-cols-1 gap-3">
                 {aiRoute.places.map((place, index) => (
