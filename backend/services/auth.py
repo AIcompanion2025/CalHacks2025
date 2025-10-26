@@ -43,10 +43,10 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(seconds=settings.jwt_expires_in)
+        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
 
 async def get_current_user(
@@ -73,8 +73,8 @@ async def get_current_user(
     try:
         token = credentials.credentials
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
@@ -86,7 +86,7 @@ async def get_current_user(
             detail="Database connection unavailable"
         )
     
-    user_data = await db.users.find_one({"_id": ObjectId(user_id)})
+    user_data = await db.users.find_one({"email": email})
     if user_data is None:
         raise credentials_exception
     

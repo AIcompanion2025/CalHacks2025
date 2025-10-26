@@ -11,11 +11,6 @@ from pydantic import BaseModel, EmailStr
 router = APIRouter(tags=["authentication"])  # Remove prefix from here
 logger = logging.getLogger(__name__)
 
-class UserRegister(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-
 class AuthResponse(BaseModel):
     message: str
     user: UserResponse
@@ -23,7 +18,7 @@ class AuthResponse(BaseModel):
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=AuthResponse)
-async def register(user_data: UserRegister):
+async def register(user_data: UserCreate):
     logger.info(f"=== REGISTER ENDPOINT HIT ===")
     logger.info(f"Received data: {user_data}")
     
@@ -86,7 +81,7 @@ async def login(credentials: UserLogin):
     # Create access token
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": str(user.id)},
+        data={"sub": user.email},
         expires_delta=access_token_expires
     )
     

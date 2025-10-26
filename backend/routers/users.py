@@ -73,8 +73,6 @@ async def get_user_profile(user: UserInDB, db=None) -> ProfileResponse:
 
     return ProfileResponse(user=user_response, stats=stats)
 
-router = APIRouter()
-
 @router.get("/profile", response_model=ProfileResponse)
 async def profile(
     current_user: UserInDB = Depends(get_current_user)  # inject logged-in user
@@ -93,7 +91,7 @@ async def profile(
 @router.put("/profile", response_model=Dict[str, UserResponse])
 async def update_profile(
     profile_update: ProfileUpdateRequest,
-    current_user: UserInDB
+    current_user: UserInDB = Depends(get_current_user)
 ) -> Dict[str, UserResponse]:
     """
     Update user profile (name only, email is immutable).
@@ -146,7 +144,7 @@ async def update_profile(
 @router.put("/preferences", response_model=Dict[str, UserPreferences])
 async def update_preferences(
     preferences_update: PreferencesUpdateRequest,
-    current_user: UserInDB
+    current_user: UserInDB = Depends(get_current_user)
 ) -> Dict[str, UserPreferences]:
     """
     Update user preferences for personalized recommendations.
@@ -193,7 +191,7 @@ async def update_preferences(
 @router.post("/visit-place", response_model=VisitPlaceResponse)
 async def visit_place(
     visit_request: VisitPlaceRequest,
-    current_user: UserInDB
+    current_user: UserInDB = Depends(get_current_user)
 ) -> VisitPlaceResponse:
     """
     Mark a place as visited and update Street Cred.
