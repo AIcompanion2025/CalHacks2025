@@ -34,21 +34,21 @@ class Coordinates(BaseModel):
 
 
 class Place(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[str] = Field(default=None, alias="_id")  # Changed from PyObjectId to str for demo compatibility
     name: str
     category: str
     description: str
     ai_summary: str = Field(alias="aiSummary")
-    rating: float
-    review_count: int = Field(alias="reviewCount")
-    price_level: int = Field(alias="priceLevel")
-    walking_time: int = Field(alias="walkingTime")
-    driving_time: int = Field(alias="drivingTime")
+    rating: float = Field(default=0.0)
+    review_count: int = Field(default=0, alias="reviewCount")
+    price_level: int = Field(default=1, alias="priceLevel")
+    walking_time: int = Field(default=10, alias="walkingTime")
+    driving_time: int = Field(default=5, alias="drivingTime")
     coordinates: Coordinates
-    image_url: str = Field(alias="imageUrl")
-    tags: List[str]
-    vibe: List[str]
-    created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
+    image_url: str = Field(default="/placeholder.svg", alias="imageUrl")
+    tags: List[str] = Field(default_factory=list)
+    vibe: List[str] = Field(default_factory=list)
+    created_at: Optional[datetime] = Field(default=None, alias="createdAt")
 
     class Config:
         populate_by_name = True
