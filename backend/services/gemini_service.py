@@ -207,20 +207,23 @@ class GeminiService:
 User Request: "{user_prompt}"
 Location: "{location}"
 
-Create a walking tour with 3-5 interesting places. Your response MUST be valid JSON with this exact structure:
+Create a walking tour with 3-5 interesting places. Your response MUST be ONLY valid JSON with this exact structure:
 {{
   "name": "Creative route name",
   "stops": ["Place 1", "Place 2", "Place 3"],
   "descriptions": {{
     "Place 1": "Brief description",
-    "Place 2": "Brief description"
+    "Place 2": "Brief description",
+    "Place 3": "Brief description"
   }}
 }}
 
-Focus on places that match the user's interests and create a logical walking route.
-Ensure all place names are real, well-known locations in {location}.
-The route name should be creative and capture the essence of the experience.
-Each description should be 1-2 sentences highlighting what makes the place special."""
+IMPORTANT: 
+- Return ONLY the JSON object, no other text
+- Ensure all JSON brackets and quotes are properly closed
+- Include descriptions for ALL stops
+- Use real, well-known locations in {location}
+- Make the route name creative and descriptive"""
 
         return prompt
     

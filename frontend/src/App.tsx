@@ -8,10 +8,12 @@ import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import BottomNavigation from "@/components/navigation/BottomNavigation";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
+import AIExplorer from "./pages/AIExplorer";
 import PlaceDetail from "./pages/PlaceDetail";
 import Profile from "./pages/Profile";
 import RoutesPage from "./pages/Routes";
 import RouteBuilder from "./pages/RouteBuilder";
+import AIRouteBuilder from "./pages/AIRouteBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,11 @@ const App = () => (
           <Route path="/onboarding" element={<OnboardingFlow />} />
           <Route path="/" element={
             <ProtectedRoute>
+              <AIExplorer />
+            </ProtectedRoute>
+          } />
+          <Route path="/home" element={
+            <ProtectedRoute>
               <Home />
             </ProtectedRoute>
           } />
@@ -60,6 +67,11 @@ const App = () => (
           <Route path="/route-builder" element={
             <ProtectedRoute>
               <RouteBuilder />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai-route-builder" element={
+            <ProtectedRoute>
+              <AIRouteBuilder />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />

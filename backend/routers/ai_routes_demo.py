@@ -13,6 +13,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ai", tags=["ai-routes-demo"])
 
 
+@router.get("/health")
+async def health_check():
+    """Simple health check endpoint."""
+    return {"status": "healthy", "message": "AI routes demo service is running"}
+
+
 # Models are now imported from models.ai_route
 
 
